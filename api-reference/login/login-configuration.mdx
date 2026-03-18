@@ -9,7 +9,7 @@ description: "A configuration object that controls the behavior of a login attem
 
 All initializers are failable. They return `nil` if any parameter is invalid—for example, if the nonce contains whitespace or the permissions array contains invalid values.
 
-**Module:** `FBSDKLoginKit`  
+**Module:** `FacebookLogin`  
 **Declared in:** `LoginConfiguration.swift`  
 **Objective-C name:** `FBSDKLoginConfiguration`
 
@@ -172,7 +172,7 @@ See the [Limited Login documentation](https://developers.facebook.com/docs/faceb
 ## Usage example
 
 ```swift
-import FBSDKLoginKit
+import FacebookLogin
 
 // Standard login requesting profile and email
 guard let config = LoginConfiguration(

@@ -7,7 +7,7 @@ description: "Presents the Facebook share dialog, letting users share links, pho
 
 `ShareDialog` is the main entry point for sharing content on Facebook. It supports multiple presentation modes—native app, iOS share sheet, browser, and web—and chooses the best available mode automatically when you use `.automatic`.
 
-**Module:** `FBSDKShareKit`  
+**Module:** `FacebookShare`  
 **Declared in:** `ShareDialog.swift`  
 **Objective-C name:** `FBSDKShareDialog`
 
@@ -183,7 +183,7 @@ func sharerDidCancel(_ sharer: Sharing)
 ## Usage example
 
 ```swift
-import FBSDKShareKit
+import FacebookShare
 
 class ShareViewController: UIViewController, SharingDelegate {
 

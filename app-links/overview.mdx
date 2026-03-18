@@ -15,7 +15,7 @@ App Links is an open protocol developed by Facebook for cross-app and cross-plat
 Deferred deep linking captures the user's intent before your app is installed. When a user taps a link but doesn't have the app installed, Facebook records the URL. On first launch after install, you can call `AppLinkUtility.fetchDeferredAppLink(_:)` to retrieve the original destination URL and route the user directly to the right content.
 
 ```swift
-import FBSDKCoreKit
+import FacebookCore
 
 AppLinkUtility.fetchDeferredAppLink { url, error in
     guard let url = url else { return }

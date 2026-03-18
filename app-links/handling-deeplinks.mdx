@@ -12,7 +12,7 @@ The Facebook SDK processes inbound URLs through `ApplicationDelegate.shared`. Yo
     In your app delegate, call `ApplicationDelegate.shared.application(_:open:options:)` from `application(_:open:options:)`:
 
     ```swift
-    import FBSDKCoreKit
+    import FacebookCore
     import UIKit
 
     @UIApplicationMain
@@ -104,7 +104,7 @@ func handleIncomingURL(_ url: URL) {
 Use `AppLinkUtility.fetchDeferredAppLink(_:)` on first launch to retrieve a URL that was recorded before the app was installed:
 
 ```swift
-import FBSDKCoreKit
+import FacebookCore
 
 func application(
     _ application: UIApplication,
@@ -135,7 +135,7 @@ func application(
 To navigate outbound to a URL that may have an App Link target, resolve it first and then navigate:
 
 ```swift
-import FBSDKCoreKit
+import FacebookCore
 
 guard let destination = URL(string: "https://example.com/some-content") else { return }
 

@@ -14,7 +14,7 @@ The flow works as follows:
 3. Present the code to the user and direct them to the URL to complete authentication on another device.
 4. The manager polls Facebook periodically. When the user completes (or declines) the flow, your delegate's `deviceLoginManager(_:completedWith:error:)` method is called.
 
-**Module:** `FBSDKLoginKit`  
+**Module:** `FacebookLogin`  
 **Declared in:** `DeviceLoginManager.swift`  
 **Objective-C name:** `FBSDKDeviceLoginManager`
 
@@ -173,7 +173,7 @@ Represents the outcome of the device login flow.
 ## Usage example
 
 ```swift
-import FBSDKLoginKit
+import FacebookLogin
 
 class DeviceLoginViewController: UIViewController, DeviceLoginManagerDelegate {
 

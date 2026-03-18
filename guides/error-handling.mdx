@@ -18,8 +18,8 @@ The SDK uses three primary error domains:
 When you receive an `Error` in a completion handler, check its domain before inspecting the code:
 
 ```swift
-import FBSDKCoreKit
-import FBSDKLoginKit
+import FacebookCore
+import FacebookLogin
 
 func handleError(_ error: Error) {
     let nsError = error as NSError
@@ -57,7 +57,7 @@ Login errors are represented by `LoginError` / `LoginErrorCode` in `FBSDKLoginKi
 The `LoginManager.logIn` completion handler receives a `LoginResult` enum. The `.failed` case carries the error:
 
 ```swift
-import FBSDKLoginKit
+import FacebookLogin
 
 let loginManager = LoginManager()
 loginManager.logIn(permissions: ["email"], from: self) { result, error in
@@ -113,7 +113,7 @@ func showAlert(message: String) {
 Graph API errors arrive through the `GraphRequestCompletion` closure. The `connection` parameter is the request connection, `result` is the raw response dictionary, and `error` is non-nil when the request failed:
 
 ```swift
-import FBSDKCoreKit
+import FacebookCore
 
 func fetchUserProfile() {
     let request = GraphRequest(
@@ -167,7 +167,7 @@ func handleGraphError(_ error: Error) {
 The SDK includes a built-in error recovery system for Graph API errors. When `Settings.shared.isGraphErrorRecoveryEnabled` is `true` (the default), the SDK attempts to automatically recover from certain errors — such as prompting the user to log in again when an access token expires.
 
 ```swift
-import FBSDKCoreKit
+import FacebookCore
 
 // Enable automatic Graph API error recovery (default is true).
 Settings.shared.isGraphErrorRecoveryEnabled = true

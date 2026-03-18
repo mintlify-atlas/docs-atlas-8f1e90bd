@@ -7,7 +7,7 @@ description: "A model for sharing a video from your app to Facebook."
 
 `ShareVideoContent` holds a single `ShareVideo` to share as a Facebook video post. You can supply the video as raw `Data`, a `PHAsset`, or a file URL.
 
-**Module:** `FBSDKShareKit`  
+**Module:** `FacebookShare`  
 **Declared in:** `ShareVideoContent.swift`  
 **Objective-C name:** `FBSDKShareVideoContent`  
 **Conforms to:** `SharingContent`, `SharingValidatable`
@@ -139,7 +139,7 @@ public convenience init(
 ## Usage example
 
 ```swift
-import FBSDKShareKit
+import FacebookShare
 
 // Share a video from a local file
 let videoURL = Bundle.main.url(forResource: "promo", withExtension: "mp4")!

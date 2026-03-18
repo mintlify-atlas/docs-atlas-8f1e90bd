@@ -28,7 +28,7 @@ Request tracking permission at a moment where the context makes the benefit clea
 
 ```swift
 import AppTrackingTransparency
-import FBSDKCoreKit
+import FacebookCore
 
 func requestTrackingPermission() {
     ATTrackingManager.requestTrackingAuthorization { status in
@@ -67,7 +67,7 @@ Add this key to your `Info.plist` to disable IDFA collection entirely:
 You can also control this at runtime through `Settings.shared`:
 
 ```swift
-import FBSDKCoreKit
+import FacebookCore
 
 // Disable IDFA collection
 Settings.shared.isAdvertiserIDCollectionEnabled = false
@@ -85,7 +85,7 @@ Limited Login is a privacy-preserving login mode that restricts what data Facebo
 To use Limited Login, set the `tracking` property of `LoginConfiguration` to `.limited`:
 
 ```swift
-import FBSDKLoginKit
+import FacebookLogin
 
 let config = LoginConfiguration(
     permissions: ["email"],

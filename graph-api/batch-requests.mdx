@@ -16,7 +16,7 @@ Your app ID must be configured in `Settings.shared.appID` before using batch req
 Instantiate a `GraphRequestConnection`, add your requests, then call `start()`.
 
 ```swift
-import FBSDKCoreKit
+import FacebookCore
 
 // 1. Create the connection
 let connection = GraphRequestConnection()
@@ -106,7 +106,7 @@ GraphRequestConnection.setDefaultConnectionTimeout(30)
 ## Complete example
 
 ```swift
-import FBSDKCoreKit
+import FacebookCore
 
 func fetchUserData() {
     let connection = GraphRequestConnection()

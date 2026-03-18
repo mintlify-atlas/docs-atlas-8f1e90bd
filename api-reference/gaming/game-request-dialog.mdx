@@ -7,7 +7,7 @@ description: "Presents a dialog that lets users send game requests to their Face
 
 `GameRequestDialog` lets users invite or challenge Facebook friends from within your game. You configure a `GameRequestContent` object describing the request and present the dialog. The SDK handles both web-based and native (Gaming Services deep link) presentation automatically.
 
-**Module:** `FBSDKGamingServicesKit`  
+**Module:** `FacebookGamingServices`  
 **Declared in:** `GameRequestDialog.swift`  
 **Objective-C name:** `FBSDKGameRequestDialog`
 
@@ -217,7 +217,7 @@ func gameRequestDialogDidCancel(_ gameRequestDialog: GameRequestDialog)
 ## Usage example
 
 ```swift
-import FBSDKGamingServicesKit
+import FacebookGamingServices
 
 class GameRequestViewController: UIViewController, GameRequestDialogDelegate {
 

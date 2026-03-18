@@ -8,7 +8,7 @@ description: "Use GraphRequest to fetch data from the Facebook Graph API."
 Use `GraphRequest` to build a request with a graph path and an optional parameters dictionary. The `fields` parameter controls which fields the API returns.
 
 ```swift
-import FBSDKCoreKit
+import FacebookCore
 
 let request = GraphRequest(
     graphPath: "me",
@@ -22,7 +22,7 @@ Starting with Graph API v2.4, GET requests must include an explicit `fields` par
 
 ## Starting the request
 
-Call `startWithCompletion(_:)` to fire the request. The completion closure receives a connection, a result, and an error.
+Call `start(_:)` to fire the request. The completion closure receives a connection, a result, and an error.
 
 ```swift
 request.start { connection, result, error in
@@ -37,7 +37,7 @@ request.start { connection, result, error in
 }
 ```
 
-`startWithCompletion(_:)` returns an `id<FBSDKGraphRequestConnecting>` value you can use to cancel the request before it completes.
+`start(_:)` returns an object conforming to `GraphRequestConnecting` that you can use to cancel the request before it completes.
 
 ## HTTP methods
 

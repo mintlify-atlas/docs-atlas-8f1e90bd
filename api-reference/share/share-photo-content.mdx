@@ -7,7 +7,7 @@ description: "A model for sharing one or more photos from your app to Facebook."
 
 `SharePhotoContent` holds an array of `SharePhoto` objects to share as a Facebook photo post. You can share between 1 and 10 photos at once.
 
-**Module:** `FBSDKShareKit`  
+**Module:** `FacebookShare`  
 **Declared in:** `SharePhotoContent.swift`  
 **Objective-C name:** `FBSDKSharePhotoContent`  
 **Conforms to:** `SharingContent`, `SharingValidatable`
@@ -134,7 +134,7 @@ public convenience init(photoAsset: PHAsset, isUserGenerated: Bool)
 ## Usage example
 
 ```swift
-import FBSDKShareKit
+import FacebookShare
 
 // Share a photo from memory
 let photo = SharePhoto(image: capturedImage, isUserGenerated: true)

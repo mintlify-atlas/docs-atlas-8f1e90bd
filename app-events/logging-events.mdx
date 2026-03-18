@@ -8,7 +8,7 @@ description: "Log standard and custom events to measure user behavior in your iO
 All event logging goes through the `AppEvents.shared` singleton. You access it directly without any setup beyond the standard SDK initialisation in your `AppDelegate`.
 
 ```swift
-import FBSDKCoreKit
+import FacebookCore
 
 // Simple event with no parameters
 AppEvents.shared.logEvent(.viewedContent)
@@ -28,7 +28,7 @@ Use `logEvent(_:valueToSum:parameters:)` to attach a numeric value and a paramet
 
 ```swift
 AppEvents.shared.logEvent(
-    .viewed Content,
+    .viewedContent,
     valueToSum: 9.99,
     parameters: [
         .contentType: "product",
@@ -41,18 +41,43 @@ AppEvents.shared.logEvent(
 
 The SDK defines constants for the most common event names. Use these where possible so Facebook can map them to standard event types.
 
-| Swift constant | Raw value |
-|---|---|
-| `AppEvents.Name.viewedContent` | `fb_mobile_content_view` |
-| `AppEvents.Name.searched` | `fb_mobile_search` |
-| `AppEvents.Name.addedToCart` | `fb_mobile_add_to_cart` |
-| `AppEvents.Name.addedToWishlist` | `fb_mobile_add_to_wishlist` |
-| `AppEvents.Name.initiatedCheckout` | `fb_mobile_initiated_checkout` |
-| `AppEvents.Name.addedPaymentInfo` | `fb_mobile_add_payment_info` |
-| `AppEvents.Name.purchased` | `fb_mobile_purchase` |
-| `AppEvents.Name.completedRegistration` | `fb_mobile_complete_registration` |
-| `AppEvents.Name.subscribe` | `Subscribe` |
-| `AppEvents.Name.startTrial` | `StartTrial` |
+**General events**
+
+| Swift constant | Raw value | Description |
+|---|---|---|
+| `AppEvents.Name.viewedContent` | `fb_mobile_content_view` | User viewed content |
+| `AppEvents.Name.searched` | `fb_mobile_search` | User performed a search |
+| `AppEvents.Name.completedRegistration` | `fb_mobile_complete_registration` | User completed registration |
+| `AppEvents.Name.completedTutorial` | `fb_mobile_tutorial_completion` | User completed a tutorial |
+| `AppEvents.Name.rated` | `fb_mobile_rate` | User rated an item |
+| `AppEvents.Name.contact` | `Contact` | User initiated contact |
+| `AppEvents.Name.customizeProduct` | `CustomizeProduct` | User customized a product |
+| `AppEvents.Name.donate` | `Donate` | User made a donation |
+| `AppEvents.Name.findLocation` | `FindLocation` | User found a location |
+| `AppEvents.Name.schedule` | `Schedule` | User booked an appointment |
+| `AppEvents.Name.submitApplication` | `SubmitApplication` | User submitted an application |
+| `AppEvents.Name.subscribe` | `Subscribe` | User started a paid subscription |
+| `AppEvents.Name.startTrial` | `StartTrial` | User started a free trial |
+| `AppEvents.Name.adClick` | `AdClick` | User clicked an ad |
+| `AppEvents.Name.adImpression` | `AdImpression` | User viewed an ad |
+
+**E-commerce events**
+
+| Swift constant | Raw value | Description |
+|---|---|---|
+| `AppEvents.Name.addedToCart` | `fb_mobile_add_to_cart` | User added item to cart |
+| `AppEvents.Name.addedToWishlist` | `fb_mobile_add_to_wishlist` | User added item to wishlist |
+| `AppEvents.Name.initiatedCheckout` | `fb_mobile_initiated_checkout` | User entered checkout |
+| `AppEvents.Name.addedPaymentInfo` | `fb_mobile_add_payment_info` | User entered payment info |
+| `AppEvents.Name.purchased` | `fb_mobile_purchase` | User completed a purchase |
+
+**Gaming events**
+
+| Swift constant | Raw value | Description |
+|---|---|---|
+| `AppEvents.Name.achievedLevel` | `fb_mobile_level_achieved` | User achieved a level |
+| `AppEvents.Name.unlockedAchievement` | `fb_mobile_achievement_unlocked` | User unlocked an achievement |
+| `AppEvents.Name.spentCredits` | `fb_mobile_spent_credits` | User spent in-app credits |
 
 ## Standard parameter names
 

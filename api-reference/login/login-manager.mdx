@@ -10,12 +10,12 @@ description: "Provides methods for logging the user in and out of your app using
 Before calling a login method, you should check `AccessToken.current` to see whether a cached token is already available.
 
 ```swift
-import FBSDKLoginKit
+import FacebookLogin
 
 let loginManager = LoginManager()
 ```
 
-**Module:** `FBSDKLoginKit`  
+**Module:** `FacebookLogin`  
 **Declared in:** `LoginManager.swift`  
 **Objective-C name:** `FBSDKLoginManager`
 
@@ -170,7 +170,7 @@ Call this method when `AccessToken.isDataAccessExpired` returns `true`. You must
 ## Usage example
 
 ```swift
-import FBSDKLoginKit
+import FacebookLogin
 
 class LoginViewController: UIViewController {
 

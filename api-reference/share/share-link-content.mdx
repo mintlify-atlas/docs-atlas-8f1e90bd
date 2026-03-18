@@ -7,7 +7,7 @@ description: "A model for sharing a URL link with an optional quote and hashtag.
 
 `ShareLinkContent` holds the data for a standard Facebook link share. Set at minimum the `contentURL` property, then pass the object to a `ShareDialog`.
 
-**Module:** `FBSDKShareKit`  
+**Module:** `FacebookShare`  
 **Declared in:** `ShareLinkContent.swift`  
 **Objective-C name:** `FBSDKShareLinkContent`  
 **Conforms to:** `SharingContent`, `SharingValidatable`
@@ -108,7 +108,7 @@ When you pass a `ShareLinkContent` to a `ShareDialog`, the SDK validates the con
 ## Usage example
 
 ```swift
-import FBSDKShareKit
+import FacebookShare
 
 let content = ShareLinkContent()
 content.contentURL = URL(string: "https://developers.facebook.com/")

@@ -1,0 +1,166 @@
+---
+title: "Access tokens"
+description: "Understand AccessToken, its properties, expiration, and how to use it for authenticated Graph API calls."
+---
+
+An `AccessToken` represents the user's authorization for your app to access their Facebook data. The SDK stores the current token in a keychain-backed singleton (`AccessToken.current`) and attaches it automatically to outgoing Graph API requests.
+
+## AccessToken.current
+
+After a successful standard login, the SDK sets `AccessToken.current` automatically. Check it at app launch (typically in `viewDidLoad`) before deciding whether to prompt the user to log in:
+
+```swift
+override func viewDidLoad() {
+    super.viewDidLoad()
+
+    if let token = AccessToken.current, !token.isExpired {
+        // User has a valid token — skip the login flow
+        loadUserData()
+    } else {
+        showLoginScreen()
+    }
+}
+```
+
+`AccessToken.current` persists across app launches. Once a user logs in they stay logged in until the token expires or you call `loginManager.logOut()`.
+
+## Token properties
+
+The properties available on an `AccessToken` instance:
+
+```swift
+if let token = AccessToken.current {
+    // The raw bearer token string — pass this to your backend if needed
+    let tokenString: String = token.tokenString
+
+    // The Facebook user ID of the authenticated user
+    let userID: String = token.userID
+
+    // The app ID the token was issued for
+    let appID: String = token.appID
+
+    // All permissions currently granted for this token
+    let permissions: Set<Permission> = token.permissions
+
+    // Permissions the user explicitly declined
+    let declinedPermissions: Set<Permission> = token.declinedPermissions
+
+    // Permissions that have expired
+    let expiredPermissions: Set<Permission> = token.expiredPermissions
+
+    // When the access token itself expires
+    let expirationDate: Date? = token.expirationDate
+
+    // When data access permission expires (can differ from token expiry)
+    let dataAccessExpirationDate: Date? = token.dataAccessExpirationDate
+
+    // When the token was last refreshed
+    let refreshDate: Date? = token.refreshDate
+}
+```
+
+## Check if a token is expired
+
+Use the `isExpired` and `isDataAccessExpired` properties:
+
+```swift
+if let token = AccessToken.current {
+    if token.isExpired {
+        // The access token has expired — the user must log in again
+    }
+
+    if token.isDataAccessExpired {
+        // Data access has expired but the token itself may still be valid
+        // Call reauthorizeDataAccess to restore access without re-login
+    }
+}
+```
+
+`isExpired` and `isDataAccessExpired` are computed against the device clock. Neither triggers a network request.
+
+## Check for a specific permission
+
+Use `hasGranted(_:)` to test for a single permission without inspecting the full set:
+
+```swift
+if AccessToken.current?.hasGranted(.email) == true {
+    // Fetch and display the user's email
+}
+```
+
+## Active token convenience property
+
+`AccessToken.isCurrentAccessTokenActive` returns `true` when `AccessToken.current` is non-nil and not expired:
+
+```swift
+if AccessToken.isCurrentAccessTokenActive {
+    // Safe to make Graph API calls
+}
+```
+
+## Token refresh
+
+Facebook access tokens are long-lived (typically 60 days), but data access expires independently. The SDK does not automatically refresh expired tokens — you need to handle expiration in your app:
+
+```swift
+func validateSession() {
+    guard let token = AccessToken.current else {
+        // No token — prompt login
+        return
+    }
+
+    if token.isExpired {
+        // Full token expired — log in again
+        loginManager.logOut()
+        showLoginScreen()
+    } else if token.isDataAccessExpired {
+        // Data access expired — reauthorize without a full login prompt
+        loginManager.reauthorizeDataAccess(from: self) { _, error in
+            if let error = error { print(error) }
+        }
+    }
+}
+```
+
+<Note>
+Facebook extends the token expiration date each time the user opens your app. A user who opens your app regularly will rarely see an expired token.
+</Note>
+
+## AuthenticationToken for OIDC
+
+When you use Limited Login (`LoginTracking.limited`), the SDK does not issue an `AccessToken`. Instead, it sets `AuthenticationToken.current` — an OIDC ID token that contains identity claims about the user.
+
+Unlike `AccessToken`, an `AuthenticationToken` cannot be used to call the Graph API. It is intended solely for authentication: you verify the token's signature on your server and extract the user's identity from its claims.
+
+```swift
+if let authToken = AuthenticationToken.current {
+    // The raw JWT string to send to your server for verification
+    let tokenString: String = authToken.tokenString
+
+    // OIDC nonce — verify this matches what you sent in LoginConfiguration
+    let nonce: String = authToken.nonce
+}
+```
+
+See [Limited Login](/login/limited-login) for a complete walkthrough.
+
+## Observe token changes
+
+The SDK posts `Notification.Name.AccessTokenDidChange` whenever `AccessToken.current` changes. Subscribe in your UI layer to keep the interface in sync:
+
+```swift
+NotificationCenter.default.addObserver(
+    self,
+    selector: #selector(handleTokenChange(_:)),
+    name: .AccessTokenDidChange,
+    object: nil
+)
+
+@objc func handleTokenChange(_ notification: Notification) {
+    if AccessToken.current != nil {
+        loadUserData()
+    } else {
+        showLoginScreen()
+    }
+}
+```

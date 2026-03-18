@@ -1,0 +1,211 @@
+---
+title: "Settings"
+description: "A centralized configuration object for the Facebook SDK. Use Settings.shared to configure your app ID, client token, logging, and data collection behavior."
+---
+
+## Overview
+
+`Settings` exposes the configuration options that control how the SDK behaves throughout your app. Most properties read their default values from your `Info.plist`, but you can override any of them in code before calling `ApplicationDelegate.shared.application(_:didFinishLaunchingWithOptions:)`.
+
+| | |
+|---|---|
+| **Module** | `FacebookCore` |
+| **Objective-C name** | `FBSDKSettings` |
+| **Availability** | iOS 12+ |
+
+---
+
+## Singleton
+
+<ResponseField name="shared" type="Settings">
+  The shared settings instance. Prefer instance methods on this object over type-level properties and methods.
+
+  ```swift
+  let settings = Settings.shared
+  ```
+</ResponseField>
+
+---
+
+## Identity properties
+
+<ResponseField name="appID" type="String?">
+  Your Facebook App ID. The SDK reads this automatically from the `FacebookAppID` key in your `Info.plist`. You can override it in code before the SDK initializes.
+
+  **Info.plist key:** `FacebookAppID`
+</ResponseField>
+
+<ResponseField name="clientToken" type="String?">
+  The client token for your Facebook app, used for anonymous API calls made without a user access token. Find it in the Facebook Developer Dashboard under **Settings → Advanced → Security**.
+
+  **Info.plist key:** `FacebookClientToken`
+</ResponseField>
+
+<ResponseField name="displayName" type="String?">
+  The display name for your app. This should match the name set in the Facebook App Dashboard.
+
+  **Info.plist key:** `FacebookDisplayName`
+</ResponseField>
+
+<ResponseField name="appURLSchemeSuffix" type="String?">
+  The URL scheme suffix used to differentiate multiple Facebook apps on the same device. Only set this if your app uses a custom URL scheme suffix.
+
+  **Info.plist key:** `FacebookUrlSchemeSuffix`
+</ResponseField>
+
+---
+
+## Data collection properties
+
+<ResponseField name="isAutoLogAppEventsEnabled" type="Bool">
+  Controls whether the SDK automatically logs basic app events such as app installs and app launches. Defaults to `true`. Set to `false` and then back to `true` after you have received user consent.
+
+  **Info.plist key:** `FacebookAutoLogAppEventsEnabled`
+</ResponseField>
+
+<ResponseField name="isAdvertiserIDCollectionEnabled" type="Bool">
+  Controls whether the SDK reads the device Advertiser ID (IDFA). Defaults to `true`. Disable this if you do not use the IDFA for advertising.
+
+  **Info.plist key:** `FacebookAdvertiserIDCollectionEnabled`
+</ResponseField>
+
+<ResponseField name="isAdvertiserTrackingEnabled" type="Bool">
+  Reflects the advertiser tracking status of data sent to Facebook. On iOS 17+, this value is determined by `ATTrackingManager.trackingAuthorizationStatus` and cannot be set manually.
+
+  <Warning>
+    The setter for this property is deprecated on iOS 17+ and has no effect when domain handling is enabled. Use App Tracking Transparency (`ATTrackingManager`) instead.
+  </Warning>
+</ResponseField>
+
+---
+
+## Logging properties
+
+<ResponseField name="loggingBehaviors" type="Set&lt;LoggingBehavior&gt;">
+  The set of active logging behaviors. The default set contains only `.developerErrors`. Set this to an empty set to disable all logging.
+
+  You can also configure this via the `FacebookLoggingBehavior` array key in your `Info.plist`.
+
+  Common values:
+
+  | Value | Description |
+  |-------|-------------|
+  | `.developerErrors` | Logs SDK usage errors. Enabled by default. |
+  | `.networkRequests` | Logs all Graph API requests and responses. |
+  | `.graphAPIDebugInfo` | Includes debug info from the Graph API. |
+  | `.graphAPIDebugWarning` | Includes debug warnings from the Graph API. |
+  | `.appEvents` | Logs app event activity. |
+  | `.informational` | General SDK informational messages. |
+</ResponseField>
+
+<ResponseField name="sdkVersion" type="String">
+  The version string of the Facebook SDK currently in use. Read-only.
+</ResponseField>
+
+---
+
+## Logging methods
+
+### `enableLoggingBehavior(_:)`
+
+Adds a single logging behavior to the active set.
+
+```swift
+public func enableLoggingBehavior(_ loggingBehavior: LoggingBehavior)
+```
+
+<ParamField path="body.loggingBehavior" type="LoggingBehavior" required>
+  The behavior to enable, such as `.networkRequests` or `.appEvents`.
+</ParamField>
+
+---
+
+### `disableLoggingBehavior(_:)`
+
+Removes a single logging behavior from the active set.
+
+```swift
+public func disableLoggingBehavior(_ loggingBehavior: LoggingBehavior)
+```
+
+<ParamField path="body.loggingBehavior" type="LoggingBehavior" required>
+  The behavior to disable.
+</ParamField>
+
+---
+
+### `setDataProcessingOptions(_:)`
+
+Sets data processing options, for example to enable Limited Data Use (LDU) mode.
+
+```swift
+public func setDataProcessingOptions(_ options: [String]?)
+```
+
+<ParamField path="body.options" type="[String]?" required>
+  An array of processing option strings, or `nil` to clear all options. Pass `["LDU"]` to enable Limited Data Use.
+</ParamField>
+
+### `setDataProcessingOptions(_:country:state:)`
+
+Sets data processing options with an explicit country and state code.
+
+```swift
+public func setDataProcessingOptions(_ options: [String]?, country: Int32, state: Int32)
+```
+
+<ParamField path="body.options" type="[String]?" required>
+  An array of processing option strings, or `nil` to clear.
+</ParamField>
+
+<ParamField path="body.country" type="Int32" required>
+  The numeric country code.
+</ParamField>
+
+<ParamField path="body.state" type="Int32" required>
+  The numeric state code.
+</ParamField>
+
+---
+
+## Usage example
+
+Configure the SDK programmatically before initialization:
+
+```swift
+import UIKit
+import FacebookCore
+
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate {
+
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+        // Override Info.plist values if needed
+        Settings.shared.appID = "YOUR_APP_ID"
+        Settings.shared.clientToken = "YOUR_CLIENT_TOKEN"
+        Settings.shared.displayName = "My App"
+
+        // Disable auto-logging until the user consents
+        Settings.shared.isAutoLogAppEventsEnabled = false
+
+        // Enable network request logging during development
+        Settings.shared.enableLoggingBehavior(.networkRequests)
+
+        // Enable Limited Data Use for California users
+        Settings.shared.setDataProcessingOptions(["LDU"], country: 1, state: 5)
+
+        ApplicationDelegate.shared.application(
+            application,
+            didFinishLaunchingWithOptions: launchOptions
+        )
+        return true
+    }
+}
+```
+
+<Tip>
+  Where possible, configure `appID` and `clientToken` in your `Info.plist` rather than in code. This avoids accidental commits of credentials and keeps configuration out of your source files.
+</Tip>

@@ -1,0 +1,229 @@
+---
+title: "DeviceLoginManager"
+description: "Performs the Facebook device login flow for tvOS and other limited-input devices."
+---
+
+## Overview
+
+`DeviceLoginManager` implements [Facebook's Device Login flow](https://developers.facebook.com/docs/facebook-login/for-devices), which is designed for devices without a standard browser or limited input capabilities, such as tvOS apps.
+
+The flow works as follows:
+
+1. Call `start()` to request a short user code and a verification URL from Facebook.
+2. The manager calls your delegate's `deviceLoginManager(_:startedWith:)` method with a `DeviceLoginCodeInfo` object containing the code and URL.
+3. Present the code to the user and direct them to the URL to complete authentication on another device.
+4. The manager polls Facebook periodically. When the user completes (or declines) the flow, your delegate's `deviceLoginManager(_:completedWith:error:)` method is called.
+
+**Module:** `FBSDKLoginKit`  
+**Declared in:** `DeviceLoginManager.swift`  
+**Objective-C name:** `FBSDKDeviceLoginManager`
+
+---
+
+## Initializer
+
+### `init(permissions:enableSmartLogin:)`
+
+```swift
+@objc(initWithPermissions:enableSmartLogin:)
+public init(permissions: [String], enableSmartLogin: Bool)
+```
+
+<ParamField path="permissions" type="[String]">
+  The permissions to request, e.g. `["public_profile", "email"]`.
+</ParamField>
+
+<ParamField path="enableSmartLogin" type="Bool">
+  When `true`, the manager uses Bonjour to advertise the login code on the local network so nearby devices can complete the flow automatically (Smart Login).
+</ParamField>
+
+---
+
+## Properties
+
+<ResponseField name="delegate" type="DeviceLoginManagerDelegate?">
+  A weak reference to the object receiving login events. Set this before calling `start()`.
+</ResponseField>
+
+<ResponseField name="permissions" type="[String]">
+  The permissions that were passed to the initializer. Read-only.
+</ResponseField>
+
+<ResponseField name="redirectURL" type="URL?">
+  An optional URL to redirect the user to after login completes. Must be registered in your app settings under **Advanced → OAuth Redirect URIs**.
+</ResponseField>
+
+---
+
+## Methods
+
+### `start()`
+
+Begins the device login flow. The manager retains itself until the flow finishes or you call `cancel()`.
+
+```swift
+public func start()
+```
+
+### `cancel()`
+
+Attempts to cancel the device login flow and releases the internal self-reference.
+
+```swift
+public func cancel()
+```
+
+---
+
+## `DeviceLoginManagerDelegate` protocol
+
+Implement this protocol in your view controller or coordinator to respond to login events.
+
+**Objective-C name:** `FBSDKDeviceLoginManagerDelegate`
+
+### `deviceLoginManager(_:startedWith:)`
+
+Called when the manager has received a device login code from Facebook.
+
+```swift
+func deviceLoginManager(
+    _ loginManager: DeviceLoginManager,
+    startedWith codeInfo: DeviceLoginCodeInfo
+)
+```
+
+<ParamField path="loginManager" type="DeviceLoginManager">
+  The manager that started the flow.
+</ParamField>
+
+<ParamField path="codeInfo" type="DeviceLoginCodeInfo">
+  The code and URL to present to the user. See [`DeviceLoginCodeInfo`](#devicelogincodeinfo).
+</ParamField>
+
+### `deviceLoginManager(_:completedWith:error:)`
+
+Called when the device login flow finishes, regardless of the outcome.
+
+```swift
+func deviceLoginManager(
+    _ loginManager: DeviceLoginManager,
+    completedWith result: DeviceLoginManagerResult?,
+    error: Error?
+)
+```
+
+<ParamField path="loginManager" type="DeviceLoginManager">
+  The manager that completed the flow.
+</ParamField>
+
+<ParamField path="result" type="DeviceLoginManagerResult?">
+  The login result, or `nil` if an error occurred. See [`DeviceLoginManagerResult`](#deviceloginmanagerresult).
+</ParamField>
+
+<ParamField path="error" type="Error?">
+  An error, or `nil` if the flow succeeded or was cancelled.
+</ParamField>
+
+---
+
+## `DeviceLoginCodeInfo`
+
+Contains the information you need to display to the user at the start of the device login flow.
+
+**Objective-C name:** `FBSDKDeviceLoginCodeInfo`
+
+<ResponseField name="identifier" type="String">
+  A unique identifier for this login flow instance, used internally for polling.
+</ResponseField>
+
+<ResponseField name="loginCode" type="String">
+  The short user code to display to the user. The user enters this code at the `verificationURL`.
+</ResponseField>
+
+<ResponseField name="verificationURL" type="URL">
+  The URL where the user completes the flow on another device (e.g. `https://facebook.com/device`).
+</ResponseField>
+
+<ResponseField name="expirationDate" type="Date">
+  The date and time when the code expires.
+</ResponseField>
+
+<ResponseField name="pollingInterval" type="UInt">
+  How frequently (in seconds) the manager polls Facebook for a result. Minimum value is 5 seconds.
+</ResponseField>
+
+---
+
+## `DeviceLoginManagerResult`
+
+Represents the outcome of the device login flow.
+
+**Objective-C name:** `FBSDKDeviceLoginManagerResult`
+
+<ResponseField name="accessToken" type="AccessToken?">
+  The access token granted upon successful login. `nil` if the login was cancelled or failed.
+</ResponseField>
+
+<ResponseField name="isCancelled" type="Bool">
+  `true` if the user cancelled the flow or if the device login code expired.
+</ResponseField>
+
+---
+
+## Usage example
+
+```swift
+import FBSDKLoginKit
+
+class DeviceLoginViewController: UIViewController, DeviceLoginManagerDelegate {
+
+    var loginManager: DeviceLoginManager?
+
+    func startLogin() {
+        let manager = DeviceLoginManager(
+            permissions: ["public_profile", "email"],
+            enableSmartLogin: true
+        )
+        manager.delegate = self
+        loginManager = manager
+        manager.start()
+    }
+
+    // MARK: - DeviceLoginManagerDelegate
+
+    func deviceLoginManager(
+        _ loginManager: DeviceLoginManager,
+        startedWith codeInfo: DeviceLoginCodeInfo
+    ) {
+        // Display the code and URL to the user
+        codeLabel.text = codeInfo.loginCode
+        instructionLabel.text = "Visit \(codeInfo.verificationURL) on your phone or computer."
+    }
+
+    func deviceLoginManager(
+        _ loginManager: DeviceLoginManager,
+        completedWith result: DeviceLoginManagerResult?,
+        error: Error?
+    ) {
+        if let error = error {
+            print("Login error:", error)
+            return
+        }
+        guard let result = result else { return }
+
+        if result.isCancelled {
+            print("Login was cancelled or the code expired")
+        } else if let token = result.accessToken {
+            print("Logged in with token:", token.tokenString)
+        }
+    }
+}
+```
+
+---
+
+## Related pages
+
+- [LoginManager](/api-reference/login/login-manager)
+- [LoginConfiguration](/api-reference/login/login-configuration)
+- [LoginResult](/api-reference/login/login-result)

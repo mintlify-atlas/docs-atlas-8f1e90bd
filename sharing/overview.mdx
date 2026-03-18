@@ -1,0 +1,52 @@
+---
+title: "Sharing overview"
+description: "Let users share links, photos, and videos to Facebook directly from your app using the FacebookShare SDK."
+---
+
+The `FacebookShare` SDK gives your app the ability to post content to Facebook on behalf of the user. You can share links with quoted text, photos from memory or the photo library, and videos — all through a single consistent `ShareDialog` interface.
+
+## What you can share
+
+| Content type | Class | Description |
+| --- | --- | --- |
+| Links | `ShareLinkContent` | A URL with optional quote text and a hashtag |
+| Photos | `SharePhotoContent` | Up to 10 photos from `UIImage`, a file URL, or a `PHAsset` |
+| Videos | `ShareVideoContent` | A single video from a file URL, raw `Data`, or a `PHAsset` |
+| Mixed media | `ShareMediaContent` | A combination of photos and at most one video |
+
+## Share modes
+
+`ShareDialog` supports several presentation modes, controlled by the `mode` property:
+
+- **Automatic** (default) — the dialog selects the best available mode at runtime, preferring the native Facebook app when installed.
+- **Native** — opens the share sheet inside the Facebook app. Requires the Facebook app to be installed.
+- **Share sheet** — uses the iOS integrated share sheet (`SLComposeViewController`). Requires the Facebook app.
+- **Browser** — opens the share dialog in Safari.
+
+In most cases you should leave the mode set to `.automatic` and let the SDK choose.
+
+## Required SDK
+
+Add `FacebookShare` to your project. If you use Swift Package Manager, add the `FacebookShare` product from the Facebook iOS SDK package. For CocoaPods, add the `FBSDKShareKit` pod to your `Podfile`.
+
+```swift
+import FacebookShare
+```
+
+<Note>
+`FacebookShare` depends on `FacebookCore`. Both are included when you add `FacebookShare` through either package manager.
+</Note>
+
+## Pages in this section
+
+<CardGroup cols={2}>
+  <Card title="Share dialog" href="/sharing/share-dialog">
+    Present a share dialog, choose a mode, and handle the delegate callbacks.
+  </Card>
+  <Card title="Share link content" href="/sharing/share-content">
+    Build link payloads with quotes and hashtags.
+  </Card>
+  <Card title="Photos and videos" href="/sharing/share-photos-videos">
+    Share images, videos, and mixed media.
+  </Card>
+</CardGroup>

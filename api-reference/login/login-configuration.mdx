@@ -1,0 +1,206 @@
+---
+title: "LoginConfiguration"
+description: "A configuration object that controls the behavior of a login attempt, including permissions, tracking mode, and PKCE options."
+---
+
+## Overview
+
+`LoginConfiguration` describes everything about a single login attempt: which permissions to request, how the SDK should handle tracking, which Messenger page to associate with the request, and the PKCE code verifier to use. You pass a `LoginConfiguration` to [`LoginManager.logIn(viewController:configuration:completion:)`](/api-reference/login/login-manager).
+
+All initializers are failable. They return `nil` if any parameter is invalid—for example, if the nonce contains whitespace or the permissions array contains invalid values.
+
+**Module:** `FBSDKLoginKit`  
+**Declared in:** `LoginConfiguration.swift`  
+**Objective-C name:** `FBSDKLoginConfiguration`
+
+---
+
+## Initializers
+
+### `init(permissions:tracking:)`
+
+The most common initializer. A random UUID is used as the nonce.
+
+```swift
+public convenience init?(
+    permissions: [String],
+    tracking: LoginTracking
+)
+```
+
+<ParamField path="permissions" type="[String]">
+  Permission strings to request, e.g. `["public_profile", "email"]`. Each string must not contain whitespace. Pass an empty array to request no additional permissions.
+</ParamField>
+
+<ParamField path="tracking" type="LoginTracking">
+  Whether to use `.enabled` (standard) or `.limited` tracking. See [`LoginTracking`](#logintracking-enum).
+</ParamField>
+
+---
+
+### `init(permissions:tracking:messengerPageId:authType:)`
+
+Creates a configuration associated with a Messenger page and a specific auth type.
+
+```swift
+public convenience init?(
+    permissions: [String],
+    tracking: LoginTracking,
+    messengerPageId: String?,
+    authType: LoginAuthType?
+)
+```
+
+<ParamField path="permissions" type="[String]">
+  Permissions to request.
+</ParamField>
+
+<ParamField path="tracking" type="LoginTracking">
+  Tracking preference for this login attempt.
+</ParamField>
+
+<ParamField path="messengerPageId" type="String?">
+  The Facebook page ID to associate with this login when using Messenger.
+</ParamField>
+
+<ParamField path="authType" type="LoginAuthType?">
+  The auth type for this request. Valid values are `.rerequest` and `.reauthorize`. Pass `nil` to omit the parameter. See [`LoginAuthType`](#loginauthtype).
+</ParamField>
+
+---
+
+### `init(permissions:tracking:messengerPageId:authType:codeVerifier:)` (designated)
+
+The full designated initializer with explicit control over all parameters including the PKCE code verifier.
+
+```swift
+public init?(
+    permissions: [String],
+    tracking: LoginTracking,
+    nonce: String,
+    messengerPageId: String?,
+    authType: LoginAuthType?,
+    appSwitch: AppSwitch,
+    codeVerifier: CodeVerifier
+)
+```
+
+<ParamField path="permissions" type="[String]">
+  Permissions to request.
+</ParamField>
+
+<ParamField path="tracking" type="LoginTracking">
+  Tracking preference.
+</ParamField>
+
+<ParamField path="nonce" type="String">
+  A non-empty alphanumeric string without whitespace used to associate the login attempt with a token. A UUID is generated automatically by the convenience initializers.
+</ParamField>
+
+<ParamField path="messengerPageId" type="String?">
+  Optional Messenger page ID.
+</ParamField>
+
+<ParamField path="authType" type="LoginAuthType?">
+  Optional auth type. Accepts `.rerequest` or `.reauthorize` only.
+</ParamField>
+
+<ParamField path="appSwitch" type="AppSwitch">
+  Controls whether the SDK may switch to the Facebook app to complete login.
+</ParamField>
+
+<ParamField path="codeVerifier" type="CodeVerifier">
+  The PKCE code verifier. If you do not need a specific verifier, use `CodeVerifier()` to generate one.
+</ParamField>
+
+---
+
+## Properties
+
+<ResponseField name="requestedPermissions" type="Set&lt;FBPermission&gt;">
+  The set of permissions that were requested when this configuration was created.
+</ResponseField>
+
+<ResponseField name="tracking" type="LoginTracking">
+  The tracking preference for this login attempt. Defaults to `.enabled`.
+</ResponseField>
+
+<ResponseField name="nonce" type="String">
+  The nonce used for this login attempt. A unique UUID is generated when you use the convenience initializers.
+</ResponseField>
+
+<ResponseField name="messengerPageId" type="String?">
+  The Messenger page ID associated with this login request, or `nil` if not set.
+</ResponseField>
+
+<ResponseField name="authType" type="LoginAuthType?">
+  The auth type associated with this login request.
+</ResponseField>
+
+<ResponseField name="appSwitch" type="AppSwitch">
+  The app switch behavior to use for this login attempt. Defaults to `.enabled`.
+</ResponseField>
+
+<ResponseField name="codeVerifier" type="CodeVerifier">
+  The PKCE code verifier. Generated automatically if not provided.
+</ResponseField>
+
+---
+
+## `LoginTracking` enum
+
+| Case | Description |
+|------|-------------|
+| `.enabled` | Standard login with full tracking. The SDK collects analytics and uses access tokens as normal. |
+| `.limited` | Limited login mode introduced for iOS 14+. Reduces data collection; uses `AuthenticationToken` instead of `AccessToken`. |
+
+See the [Limited Login documentation](https://developers.facebook.com/docs/facebook-login/ios/limited-login/) for a detailed comparison.
+
+---
+
+## `LoginAuthType`
+
+`LoginAuthType` is a typed string (`NS_TYPED_EXTENSIBLE_ENUM` in Objective-C).
+
+| Value | Description |
+|-------|-------------|
+| `.rerequest` | Re-requests permissions that were previously declined by the user. This is the default. |
+| `.reauthorize` | Re-authorizes data access after it has expired. Used internally by `reauthorizeDataAccess(from:handler:)`. |
+
+---
+
+## Usage example
+
+```swift
+import FBSDKLoginKit
+
+// Standard login requesting profile and email
+guard let config = LoginConfiguration(
+    permissions: ["public_profile", "email"],
+    tracking: .enabled
+) else {
+    print("Invalid configuration")
+    return
+}
+
+loginManager.logIn(viewController: self, configuration: config) { result in
+    // handle result
+}
+
+// Limited login (no access token)
+guard let limitedConfig = LoginConfiguration(
+    permissions: [],
+    tracking: .limited
+) else { return }
+
+loginManager.logIn(viewController: self, configuration: limitedConfig) { result in
+    // handle result — no AccessToken is issued in limited mode
+}
+```
+
+---
+
+## Related pages
+
+- [LoginManager](/api-reference/login/login-manager)
+- [LoginResult](/api-reference/login/login-result)

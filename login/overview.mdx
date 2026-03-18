@@ -1,0 +1,109 @@
+---
+title: "Facebook Login overview"
+description: "Let users log in to your iOS app with their Facebook account using OAuth 2.0."
+---
+
+Facebook Login lets your users authenticate with your app using their existing Facebook account instead of creating a new set of credentials. The SDK handles the OAuth 2.0 flow, token storage, and permission requests for you.
+
+## Why use Facebook Login
+
+- **No passwords to manage.** Users authenticate through Facebook's secure identity layer, so you never store or transmit passwords.
+- **Rich profile data.** With the user's consent, you can access their name, profile picture, email, and more through the Graph API.
+- **Trusted brand.** The "Continue with Facebook" button is a recognized pattern that reduces friction at sign-in.
+- **Token lifecycle management.** The SDK automatically stores, refreshes, and exposes access tokens through `AccessToken.current`.
+
+## Two login modes
+
+The SDK supports two distinct login tracking modes, controlled by the `LoginTracking` setting on your `LoginConfiguration`.
+
+| Mode | Tracking | Token type | iOS requirement |
+|---|---|---|---|
+| Standard Login | `.enabled` | `AccessToken` | iOS 13+ |
+| Limited Login | `.limited` | `AuthenticationToken` | iOS 14+ |
+
+**Standard Login** (`LoginTracking.enabled`) is the traditional Facebook Login flow. It issues an `AccessToken` that you can use to make Graph API calls on the user's behalf.
+
+**Limited Login** (`LoginTracking.limited`) is a privacy-preserving mode introduced for iOS 14+. It does not produce an `AccessToken` and cannot be used for Graph API calls. Instead, it returns an `AuthenticationToken` (an OIDC ID token) that you use only to authenticate the user's identity.
+
+<Tip>
+If your app only needs to know *who* the user is (name, email, profile picture) and you do not need to call the Graph API on their behalf, prefer Limited Login — it collects less data and makes App Store review smoother.
+</Tip>
+
+## How Facebook Login works
+
+Facebook Login is built on OAuth 2.0. Here is a summary of the standard flow:
+
+<Steps>
+  <Step title="Check for a cached token">
+    Before presenting a login UI, check `AccessToken.current`. If a valid token exists, the user is already logged in and you can skip the login flow.
+
+    ```swift
+    if let token = AccessToken.current, !token.isExpired {
+        // User is already authenticated
+    }
+    ```
+  </Step>
+  <Step title="Build a LoginConfiguration">
+    Create a `LoginConfiguration` that specifies the permissions you need and the tracking mode.
+
+    ```swift
+    let config = LoginConfiguration(
+        permissions: [.publicProfile, .email],
+        tracking: .enabled
+    )
+    ```
+  </Step>
+  <Step title="Invoke LoginManager">
+    Call `logIn(viewController:configuration:completion:)`. The SDK opens the Facebook app or a web dialog for the user to authorize.
+
+    ```swift
+    let loginManager = LoginManager()
+    loginManager.logIn(viewController: self, configuration: config) { result in
+        // Handle result
+    }
+    ```
+  </Step>
+  <Step title="Handle the result">
+    The completion block receives a `LoginResult` enum value: `.success`, `.cancelled`, or `.failed`.
+
+    ```swift
+    switch result {
+    case let .success(granted, declined, token):
+        print("Logged in with token: \(token?.tokenString ?? "-")")
+    case .cancelled:
+        print("User cancelled")
+    case let .failed(error):
+        print("Error: \(error)")
+    }
+    ```
+  </Step>
+  <Step title="Store and use the token">
+    On success, the SDK automatically sets `AccessToken.current`. Subsequent requests to the Graph API pick it up automatically.
+  </Step>
+</Steps>
+
+## Permissions overview
+
+Permissions control which data your app can access. You request them in `LoginConfiguration` and inspect the granted set in the login result. Always request the minimum set of permissions your feature requires.
+
+See [Permissions](/login/permissions) for a full reference.
+
+## Pages in this section
+
+<CardGroup cols={2}>
+  <Card title="LoginManager" icon="key" href="/login/login-manager">
+    Programmatic login and logout using `LoginManager`.
+  </Card>
+  <Card title="Login button" icon="hand-pointer" href="/login/login-button">
+    Drop-in `FBLoginButton` UI component with delegate callbacks.
+  </Card>
+  <Card title="Permissions" icon="shield-check" href="/login/permissions">
+    Request and inspect Facebook permissions.
+  </Card>
+  <Card title="Access tokens" icon="ticket" href="/login/access-tokens">
+    Work with `AccessToken` and its properties.
+  </Card>
+  <Card title="Limited Login" icon="eye-off" href="/login/limited-login">
+    iOS 14+ privacy-preserving login with `LoginTracking.limited`.
+  </Card>
+</CardGroup>

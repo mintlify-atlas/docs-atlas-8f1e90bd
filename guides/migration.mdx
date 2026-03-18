@@ -1,0 +1,240 @@
+---
+title: "Migration guide"
+description: "Upgrade your app to the latest Facebook SDK for iOS, including breaking changes from v13 through v18."
+---
+
+This guide covers breaking changes and required code updates across major and minor releases of the Facebook SDK for iOS. Work through the sections relevant to the version you are upgrading from.
+
+<Warning>
+The SDK is in the process of being rewritten from Objective-C to Swift. Updating to a minor version may introduce compilation errors related to language interoperability. Read the notes for each version carefully before upgrading.
+</Warning>
+
+## Upgrading to v18.x
+
+<Accordion title="v18.0.3 — Anonymous deferral deeplink support (2026-02-10)">
+This release adds anonymous deferral deeplink support. No breaking changes were introduced.
+
+If you use deferred deep linking to route users who installed your app via a Facebook ad, this release improves handling for cases where the user is not logged in.
+</Accordion>
+
+<Accordion title="v18.0.2 — Fast app switching reintroduced (2025-11-13)">
+Fast app switching capabilities were reintroduced in this release.
+
+If you previously set `appSwitch` to `.disabled` on `LoginConfiguration` as a workaround for missing fast app switching, you can now restore it to `.enabled` (the default):
+
+```swift
+let config = LoginConfiguration(
+    permissions: ["email"],
+    tracking: .enabled
+    // appSwitch defaults to .enabled
+)
+```
+</Accordion>
+
+<Accordion title="v18.0.1 — Link attachments with music (2025-08-17)">
+This release adds the ability to attach music to link-type share content. No breaking changes were introduced.
+</Accordion>
+
+<Accordion title="v18.0.0 — StoreKit 2 IAP event support (2025-01-10)">
+This release improves support for in-app purchase events for both the original StoreKit APIs and StoreKit 2 APIs.
+
+If you were manually logging purchase events to work around gaps in StoreKit 2 support, verify that the SDK's automatic IAP logging now handles your use case correctly before removing your manual logging code. Duplicate events could affect your analytics.
+</Accordion>
+
+## Upgrading to v17.x
+
+<Accordion title="v17.4.0 — Domain configuration validation (2024-10-17)">
+This release updates domain configuration validation. No breaking changes were introduced.
+</Accordion>
+
+<Accordion title="v17.3.0 — Xcode 16 compatibility (2024-09-27)">
+This release fixes issues caused by deprecated APIs in Xcode 16.
+
+**AppLinkNavigation async API change:** The `AppLinkNavigation` API changed from returning results synchronously to passing them through an async completion handler:
+
+```swift
+// Before (synchronous, now removed)
+let result = AppLinkNavigation.navigate(to: appLink)
+
+// After (async completion handler)
+AppLinkNavigation.navigate(to: appLink) { result in
+    switch result {
+    case .app:
+        print("Navigated to app")
+    case .browser:
+        print("Opened in browser")
+    case .failure:
+        print("Navigation failed")
+    }
+}
+```
+
+Update any code that relied on the synchronous return value.
+</Accordion>
+
+<Accordion title="v17.1.0 — ShareDialog photo ordering fix (2024-09-02)">
+This release fixes image ordering in `ShareDialog` and migrates from deprecated `AssetLibrary` to the `Photos` framework for sharing `PHAsset` content. No code changes are required on your side.
+</Accordion>
+
+<Accordion title="v17.0.0 — Privacy manifests added (2024-02-16)">
+This release adds Apple-required privacy manifests to all SDK frameworks. No code changes are required, but you should verify that your final app's privacy manifest accurately reflects the data your app collects (see the [iOS 14 privacy guide](/guides/privacy-ios14)).
+</Accordion>
+
+## Upgrading from v15.x to v16.x
+
+<Accordion title="v16.0.0 — AEM Auto Setup (2023-02-02)">
+This release adds AEM (Aggregated Event Measurement) Auto Setup. The SDK now configures AEM automatically — you do not need to call any AEM setup APIs manually.
+
+If you had custom AEM configuration code, review whether it is still needed.
+</Accordion>
+
+## Upgrading from v14.x to v15.x
+
+<Accordion title="v15.0.0 — Minimum OS version and bitcode removal (2022-09-19)">
+**Minimum iOS version is now 12.0.** If your app's deployment target is below iOS 12, you must raise it before upgrading.
+
+**Bitcode support removed.** Bitcode is no longer needed or supported by Apple as of Xcode 14. Remove any build settings or scripts that require bitcode from your project.
+
+**tvOS support deprecated.** Support for tvOS was deprecated in this release and removed in v16.
+</Accordion>
+
+<Accordion title="v15.1.0 — API renames and deprecations (2022-10-24)">
+Several APIs were renamed. The old names remain available but will produce deprecation warnings.
+
+| Old API | New API |
+|---|---|
+| `Settings.autoLogAppEventsEnabled` | `Settings.shared.isAutoLogAppEventsEnabled` |
+| `Settings.advertiserIDCollectionEnabled` | `Settings.shared.isAdvertiserIDCollectionEnabled` |
+| `Settings.advertiserTrackingEnabled` | `Settings.shared.isAdvertiserTrackingEnabled` |
+| `SettingsProtocol.codelessDebugLogEnabled` | `SettingsProtocol.isCodelessDebugLogEnabled` |
+| `SettingsProtocol.graphAPIDebugParamValue` | `SettingsProtocol.graphAPIDebugParameterValue` |
+| `AppLinkNavigation.Type` (enum type) | `AppLinkNavigationType` |
+| `Profile.enableUpdatesOnAccessTokenChange(_:)` | `Profile.isUpdatedWithAccessTokenChange` |
+
+`Profile` conformance to `NSCopying` has been removed, along with custom hashability and equatability.
+</Accordion>
+
+## Upgrading from v13.x to v14.x
+
+<Accordion title="v14.0.0 — Breaking API removals (2022-06-03)">
+This release removes many APIs that were deprecated in earlier versions.
+
+**Removed login APIs:**
+- `LoginConfiguration.authType(for:)` — use the `authType` parameter on the initializer directly.
+
+**Removed sharing APIs:**
+- `AEMReporter.configure(networker:appID:)` — AEM configuration is now automatic.
+- Several `ContextDialogPresenter` methods — use the updated presenter APIs instead.
+
+**LoginManagerLoginResult is now immutable.** The `token`, `authenticationToken`, `isCancelled`, `grantedPermissions`, and `declinedPermissions` properties are now read-only. If you were mutating these values, you must refactor your code.
+
+**AccessToken and AuthenticationToken current properties renamed in Swift:**
+- `AccessToken.currentAccessToken` → `AccessToken.current`
+- `AuthenticationToken.currentAuthenticationToken` → `AuthenticationToken.current`
+
+```swift
+// Before
+if let token = AccessToken.currentAccessToken {
+    print(token.tokenString)
+}
+
+// After
+if let token = AccessToken.current {
+    print(token.tokenString)
+}
+```
+</Accordion>
+
+## Upgrading from v12.x to v13.x
+
+<Accordion title="v13.0.0 — Swift rewrite, client tokens required, iOS 11 minimum (2022-01-01)">
+This is a major release with significant breaking changes.
+
+### Client tokens are now required
+
+Graph API calls will throw an exception if a client token is not configured. Add your client token to `Info.plist`:
+
+```xml
+<key>FacebookClientToken</key>
+<string>YOUR_CLIENT_TOKEN</string>
+```
+
+Or set it in code before any SDK calls:
+
+```swift
+Settings.shared.clientToken = "YOUR_CLIENT_TOKEN"
+```
+
+### Minimum iOS version is now 11.0
+
+Raise your deployment target to iOS 11 or higher.
+
+### Swift rewrite — @import required in Objective-C
+
+A number of types in `FBSDKShareKit` and `FBSDKGamingServicesKit` were rewritten from Objective-C to Swift. When you use these types from Objective-C, you may encounter "unknown type" compilation errors if you continue to use the traditional `#import` syntax.
+
+Switch to the modular `@import` syntax for any affected framework:
+
+```objc
+// If this causes "unknown symbol" errors after upgrading:
+#import <FBSDKShareKit/FBSDKShareKit.h>
+
+// Switch to the modular import:
+@import FBSDKShareKit;
+```
+
+This also applies to `FBSDKGamingServicesKit`. The `FBSDKCoreKit` and `FBSDKLoginKit` headers continue to work with `#import` for most symbols, but you may need `@import` for specific Swift-converted types.
+
+### AppEvents — instance methods required
+
+All class-level `AppEvents` methods and properties are removed. Use `AppEvents.shared` instead:
+
+```swift
+// Before
+AppEvents.logEvent(.purchased)
+
+// After
+AppEvents.shared.logEvent(.purchased)
+```
+
+### Settings — instance methods required
+
+All class-level `Settings` methods and properties are removed. Use `Settings.shared`:
+
+```swift
+// Before
+Settings.appID = "your-app-id"
+
+// After
+Settings.shared.appID = "your-app-id"
+```
+
+### GameRequest types moved to GamingServicesKit
+
+The following types moved from `FBSDKShareKit` to `FBSDKGamingServicesKit`:
+
+- `GameRequestActionType`
+- `GameRequestContent`
+- `GameRequestDialog`
+- `GameRequestDialogDelegate`
+- `GameRequestFilter`
+- `GameRequestFrictionlessRecipientCache`
+- `GameRequestURLProvider`
+
+Add `@import FBSDKGamingServicesKit;` (Objective-C) or `import FacebookGamingServices` (Swift) if you use any of these types.
+
+### App event parameter names require formal types in Swift
+
+In Swift, `AppEvents.logEvent` now requires `AppEvents.Name` and `AppEvents.ParameterName` types:
+
+```swift
+// Before
+AppEvents.logEvent("custom_event", parameters: ["my_param": "value"])
+
+// After
+AppEvents.shared.logEvent(
+    .init("custom_event"),
+    parameters: [.init("my_param"): "value"]
+)
+```
+</Accordion>

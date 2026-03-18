@@ -1,0 +1,200 @@
+---
+title: "ApplicationDelegate"
+description: "The central class for integrating the Facebook SDK with your app lifecycle."
+---
+
+## Overview
+
+`ApplicationDelegate` is the main entry point for the Facebook SDK. Its methods mirror those in `UIApplicationDelegate`, and you call them from the corresponding methods in your own app delegate. The class manages URL handling for Facebook Login, SSO flows, and universal links, and it notifies registered observers of application lifecycle events.
+
+| | |
+|---|---|
+| **Module** | `FacebookCore` |
+| **Objective-C name** | `FBSDKApplicationDelegate` |
+| **Availability** | iOS 12+ |
+
+---
+
+## Singleton
+
+<ResponseField name="shared" type="ApplicationDelegate">
+  The singleton instance. Use this instead of creating your own instance.
+
+  ```swift
+  let delegate = ApplicationDelegate.shared
+  ```
+</ResponseField>
+
+---
+
+## Methods
+
+### `initializeSDK()`
+
+Initializes the SDK outside of a `UIApplication` lifecycle context. Call this method when no `UIApplication` instance is available — for example, in an app extension or a unit test host.
+
+```swift
+public func initializeSDK()
+```
+
+<Warning>
+  If you are integrating within a standard `UIApplication` lifecycle, use `application(_:didFinishLaunchingWithOptions:)` instead. Calling both results in a no-op for the second call.
+</Warning>
+
+---
+
+### `application(_:didFinishLaunchingWithOptions:)`
+
+Call this from your `UIApplicationDelegate.application(_:didFinishLaunchingWithOptions:)` method. It initializes the SDK and triggers auto-logging of basic app events if `FacebookAutoLogAppEventsEnabled` is set in your `Info.plist`.
+
+```swift
+@discardableResult
+public func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+) -> Bool
+```
+
+<ParamField path="body.application" type="UIApplication" required>
+  The application object passed to your app delegate method.
+</ParamField>
+
+<ParamField path="body.launchOptions" type="[UIApplication.LaunchOptionsKey: Any]?">
+  The launch options dictionary passed to your app delegate method.
+</ParamField>
+
+Returns `true` always.
+
+---
+
+### `application(_:open:options:)`
+
+Call this from your `UIApplicationDelegate.application(_:open:options:)` method to handle URL responses from Facebook Login, Facebook Dialogs, and other SSO flows.
+
+```swift
+@discardableResult
+public func application(
+    _ application: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any]
+) -> Bool
+```
+
+<ParamField path="body.application" type="UIApplication" required>
+  The application object passed to your app delegate method.
+</ParamField>
+
+<ParamField path="body.url" type="URL" required>
+  The URL to handle, as passed to your app delegate method.
+</ParamField>
+
+<ParamField path="body.options" type="[UIApplication.OpenURLOptionsKey: Any]" required>
+  The options dictionary passed to your app delegate method.
+</ParamField>
+
+Returns `true` if the URL was intended for the Facebook SDK, `false` otherwise.
+
+---
+
+### `application(_:continue:userActivity:)`
+
+Call this from your `UIApplicationDelegate.application(_:continue:restorationHandler:)` method to handle universal links (web URLs) that redirect back to your app.
+
+```swift
+@discardableResult
+public func application(
+    _ application: UIApplication,
+    continue userActivity: NSUserActivity
+) -> Bool
+```
+
+<ParamField path="body.application" type="UIApplication" required>
+  The application object passed to your app delegate method.
+</ParamField>
+
+<ParamField path="body.userActivity" type="NSUserActivity" required>
+  The user activity object passed to your app delegate method. The SDK only acts on activities whose `activityType` is `NSUserActivityTypeBrowsingWeb`.
+</ParamField>
+
+Returns `true` if the URL within the user activity was intended for the Facebook SDK, `false` otherwise.
+
+---
+
+### `addObserver(_:)`
+
+Registers an object to receive application lifecycle events (launch, open URL, background, foreground). Observers are held weakly.
+
+```swift
+public func addObserver(_ observer: FBSDKApplicationObserving)
+```
+
+<ParamField path="body.observer" type="FBSDKApplicationObserving" required>
+  The object to register. Must conform to `FBSDKApplicationObserving`. The delegate holds a weak reference to this object.
+</ParamField>
+
+---
+
+### `removeObserver(_:)`
+
+Removes a previously registered observer.
+
+```swift
+public func removeObserver(_ observer: FBSDKApplicationObserving)
+```
+
+<ParamField path="body.observer" type="FBSDKApplicationObserving" required>
+  The observer to remove.
+</ParamField>
+
+---
+
+## Usage example
+
+Forward the relevant `UIApplicationDelegate` methods to `ApplicationDelegate.shared` from your app delegate:
+
+```swift
+import UIKit
+import FacebookCore
+
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate {
+
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+        ApplicationDelegate.shared.application(
+            application,
+            didFinishLaunchingWithOptions: launchOptions
+        )
+        return true
+    }
+
+    func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+    ) -> Bool {
+        ApplicationDelegate.shared.application(
+            app,
+            open: url,
+            options: options
+        )
+    }
+
+    func application(
+        _ application: UIApplication,
+        continue userActivity: NSUserActivity,
+        restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
+    ) -> Bool {
+        ApplicationDelegate.shared.application(
+            application,
+            continue: userActivity
+        )
+    }
+}
+```
+
+<Note>
+  If your app uses a `UISceneDelegate`, forward the same calls from the scene delegate's lifecycle methods instead of from `AppDelegate`.
+</Note>

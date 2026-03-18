@@ -1,0 +1,83 @@
+---
+title: "GamingContext"
+description: "Holds data about the user's current game instance, including a unique identifier and the number of players."
+---
+
+## Overview
+
+`GamingContext` represents a game instance—either a solo game or a multiplayer session. The SDK maintains a `current` singleton that reflects the active context. You do not create a `GamingContext` directly in most cases; instead, the SDK sets `GamingContext.current` when the user enters a context via a context dialog (such as `ContextSwitchDialog` or `CreateContextDialog`).
+
+**Module:** `FBSDKGamingServicesKit`  
+**Declared in:** `GamingContext.swift`  
+**Objective-C name:** `FBSDKGamingContext`
+
+---
+
+## Initializer
+
+```swift
+public init?(identifier: String, size: Int)
+```
+
+<ParamField path="identifier" type="String">
+  A non-empty unique identifier for the context. Returns `nil` if the identifier is empty.
+</ParamField>
+
+<ParamField path="size" type="Int">
+  The number of players in the game instance. Negative values are clamped to `0`.
+</ParamField>
+
+<Warning>
+  Calling this initializer automatically sets `GamingContext.current` to the newly created instance. You typically do not need to call this directly; use context dialogs to set the current context.
+</Warning>
+
+---
+
+## Properties
+
+<ResponseField name="current" type="GamingContext?">
+  A class-level (static) property holding the current game context. It is `nil` when no context is active. Objective-C name: `currentContext`.
+</ResponseField>
+
+<ResponseField name="identifier" type="String">
+  A unique identifier for the current game instance. Read-only.
+</ResponseField>
+
+<ResponseField name="size" type="Int">
+  The number of players in the current game instance. Always `>= 0`. Read-only.
+</ResponseField>
+
+---
+
+## How the context is set
+
+The `GamingContext.current` property is populated automatically when the user switches to or creates a game context using the Gaming Services context dialogs:
+
+- **`ContextSwitchDialog`** — switches to an existing context selected by the user.
+- **`CreateContextDialog`** — creates a new context with a specific player.
+- **`ChooseContextDialog`** — lets the user pick from a list of available contexts.
+
+When the dialog completes successfully, the SDK creates a `GamingContext` with the returned `identifier` and `size` and assigns it to `GamingContext.current`.
+
+---
+
+## Usage example
+
+```swift
+import FBSDKGamingServicesKit
+
+// Read the current context after a context dialog completes
+if let context = GamingContext.current {
+    print("Context ID:", context.identifier)
+    print("Players:", context.size)
+} else {
+    print("No active context")
+}
+```
+
+---
+
+## Related pages
+
+- [GameRequestDialog](/api-reference/gaming/game-request-dialog)
+- [TournamentFetcher](/api-reference/gaming/tournament-fetcher)

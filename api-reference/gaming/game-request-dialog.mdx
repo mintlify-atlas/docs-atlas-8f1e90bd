@@ -1,0 +1,271 @@
+---
+title: "GameRequestDialog"
+description: "Presents a dialog that lets users send game requests to their Facebook friends."
+---
+
+## Overview
+
+`GameRequestDialog` lets users invite or challenge Facebook friends from within your game. You configure a `GameRequestContent` object describing the request and present the dialog. The SDK handles both web-based and native (Gaming Services deep link) presentation automatically.
+
+**Module:** `FBSDKGamingServicesKit`  
+**Declared in:** `GameRequestDialog.swift`  
+**Objective-C name:** `FBSDKGameRequestDialog`
+
+---
+
+## Initializer
+
+### `init(content:delegate:)`
+
+```swift
+public init(content: GameRequestContent, delegate: GameRequestDialogDelegate?)
+```
+
+<ParamField path="content" type="GameRequestContent">
+  The content describing the game request. See [`GameRequestContent`](#gamerequestcontent) below.
+</ParamField>
+
+<ParamField path="delegate" type="GameRequestDialogDelegate?">
+  A weak delegate that receives completion, failure, and cancellation callbacks.
+</ParamField>
+
+---
+
+## Static factory methods
+
+### `GameRequestDialog.dialog(content:delegate:)`
+
+Creates but does not show a `GameRequestDialog`.
+
+```swift
+@objc(dialogWithContent:delegate:)
+public static func dialog(
+    content: GameRequestContent,
+    delegate: GameRequestDialogDelegate?
+) -> GameRequestDialog
+```
+
+### `GameRequestDialog.show(content:delegate:)`
+
+Creates and immediately shows a `GameRequestDialog`.
+
+```swift
+@discardableResult
+@objc(showWithContent:delegate:)
+public static func show(
+    content: GameRequestContent,
+    delegate: GameRequestDialogDelegate?
+) -> GameRequestDialog
+```
+
+---
+
+## Properties
+
+<ResponseField name="content" type="GameRequestContent">
+  The game request content. You can update this before calling `show()`.
+</ResponseField>
+
+<ResponseField name="delegate" type="GameRequestDialogDelegate?">
+  The delegate receiving dialog events. Weak reference.
+</ResponseField>
+
+<ResponseField name="isFrictionlessRequestsEnabled" type="Bool">
+  When `true`, requests to friends who have previously accepted frictionless requests are sent without showing the dialog. Defaults to `false`.
+</ResponseField>
+
+<ResponseField name="canShow" type="Bool">
+  Always returns `true` for `GameRequestDialog`. Use `validate()` to check content validity before showing.
+</ResponseField>
+
+---
+
+## Methods
+
+### `show()`
+
+Presents the game request dialog.
+
+```swift
+@discardableResult
+public func show() -> Bool
+```
+
+<ResponseField name="return value" type="Bool">
+  `true` if the dialog was presented, `false` if validation failed.
+</ResponseField>
+
+### `validate()`
+
+Validates the content on the receiver. Throws if the content is invalid.
+
+```swift
+public func validate() throws
+```
+
+---
+
+## `GameRequestContent`
+
+`GameRequestContent` describes the request to send.
+
+**Objective-C name:** `FBSDKGameRequestContent`
+
+### Properties
+
+<ResponseField name="message" type="String">
+  The plain-text message to send as part of the request. Required. Defaults to an empty string.
+</ResponseField>
+
+<ResponseField name="actionType" type="GameRequestActionType">
+  Additional context about the nature of the request. Defaults to `.none`. When set to `.send` or `.askFor`, you must also provide a non-empty `objectID`.
+</ResponseField>
+
+<ResponseField name="filters" type="GameRequestFilter">
+  Controls which friends appear in the multi-friend selector. Defaults to `.none` (all friends). Cannot be combined with `recipients` or `recipientSuggestions`.
+</ResponseField>
+
+<ResponseField name="recipients" type="[String]">
+  An array of user IDs, usernames, or invite tokens specifying the target recipients. When set, the sender cannot choose recipients. Cannot be combined with `filters` or `recipientSuggestions`.
+</ResponseField>
+
+<ResponseField name="recipientSuggestions" type="[String]">
+  User IDs to pre-populate as suggested friends in the multi-friend selector. Cannot be combined with `recipients` or `filters`.
+</ResponseField>
+
+<ResponseField name="data" type="String?">
+  Freeform data stored with the request object, up to 255 characters. Use this to pass game-specific state.
+</ResponseField>
+
+<ResponseField name="title" type="String">
+  The title shown in the game request dialog. Defaults to an empty string.
+</ResponseField>
+
+<ResponseField name="objectID" type="String">
+  The Open Graph object ID for `.send` and `.askFor` action types. Defaults to an empty string.
+</ResponseField>
+
+<ResponseField name="cta" type="String">
+  The call-to-action text shown in the dialog. Defaults to an empty string.
+</ResponseField>
+
+---
+
+## `GameRequestActionType` enum
+
+| Case | Description |
+|------|-------------|
+| `.none` | No specific action type (default). |
+| `.send` | The user is sending an in-game object to friends. Requires `objectID`. |
+| `.askFor` | The user is requesting an in-game object from friends. Requires `objectID`. |
+| `.turn` | Notifies friends that it is their turn in a match. |
+| `.invite` | The user is inviting a friend to the game. |
+
+---
+
+## `GameRequestFilter` enum
+
+| Case | Description |
+|------|-------------|
+| `.none` | All friends can be shown in the selector (default). |
+| `.appUsers` | Only friends who already use the app are shown. |
+| `.appNonUsers` | Only friends who do not use the app are shown. |
+| `.everybody` | All friends are shown when the Facebook app is installed. |
+
+---
+
+## `GameRequestDialogDelegate` protocol
+
+**Objective-C name:** `FBSDKGameRequestDialogDelegate`
+
+### `gameRequestDialog(_:didCompleteWithResults:)`
+
+Called when the request is sent successfully.
+
+```swift
+func gameRequestDialog(
+    _ gameRequestDialog: GameRequestDialog,
+    didCompleteWithResults results: [String: Any]
+)
+```
+
+<ParamField path="results" type="[String: Any]">
+  A dictionary containing the request ID and recipients. Keys include `request_id` and `recipients`.
+</ParamField>
+
+### `gameRequestDialog(_:didFailWithError:)`
+
+Called when the dialog encounters an error.
+
+```swift
+func gameRequestDialog(
+    _ gameRequestDialog: GameRequestDialog,
+    didFailWithError error: Error
+)
+```
+
+### `gameRequestDialogDidCancel(_:)`
+
+Called when the user dismisses the dialog without sending a request.
+
+```swift
+func gameRequestDialogDidCancel(_ gameRequestDialog: GameRequestDialog)
+```
+
+---
+
+## Usage example
+
+```swift
+import FBSDKGamingServicesKit
+
+class GameRequestViewController: UIViewController, GameRequestDialogDelegate {
+
+    func sendInvite() {
+        let content = GameRequestContent()
+        content.message = "Join me in this game!"
+        content.title = "Play with me"
+        content.actionType = .invite
+
+        let dialog = GameRequestDialog(content: content, delegate: self)
+        dialog.show()
+    }
+
+    func sendItem(objectID: String, to friends: [String]) {
+        let content = GameRequestContent()
+        content.message = "I'm sending you a power-up!"
+        content.actionType = .send
+        content.objectID = objectID
+        content.recipients = friends
+
+        GameRequestDialog.show(content: content, delegate: self)
+    }
+
+    // MARK: - GameRequestDialogDelegate
+
+    func gameRequestDialog(
+        _ gameRequestDialog: GameRequestDialog,
+        didCompleteWithResults results: [String: Any]
+    ) {
+        print("Request sent. ID:", results["request_id"] ?? "")
+    }
+
+    func gameRequestDialog(
+        _ gameRequestDialog: GameRequestDialog,
+        didFailWithError error: Error
+    ) {
+        print("Request failed:", error)
+    }
+
+    func gameRequestDialogDidCancel(_ gameRequestDialog: GameRequestDialog) {
+        print("Request cancelled")
+    }
+}
+```
+
+---
+
+## Related pages
+
+- [GamingContext](/api-reference/gaming/gaming-context)
+- [TournamentFetcher](/api-reference/gaming/tournament-fetcher)

@@ -1,0 +1,152 @@
+---
+title: "Limited Login"
+description: "Use LoginTracking.limited on iOS 14+ to authenticate users without tracking or Graph API access."
+---
+
+Limited Login is a privacy-preserving login mode introduced alongside the iOS 14 App Tracking Transparency changes. When you set `LoginTracking.limited`, Facebook does not use the login event for ad targeting or measurement, and your app receives an OIDC `AuthenticationToken` instead of an `AccessToken`.
+
+## How Limited Login differs from standard login
+
+| Capability | Standard Login (`.enabled`) | Limited Login (`.limited`) |
+|---|---|---|
+| Token type | `AccessToken` | `AuthenticationToken` (OIDC) |
+| Graph API calls | Yes | No |
+| Ad targeting by Facebook | Yes | No |
+| Data available | Profile, email, friends (with permissions) | Claims in the ID token only |
+| iOS requirement | iOS 13+ | iOS 14+ |
+| Tracking Transparency required | No | No |
+
+## Configure Limited Login
+
+Set `tracking` to `.limited` in your `LoginConfiguration`. Because no `AccessToken` is issued, you only get the data encoded in the OIDC ID token:
+
+```swift
+guard let config = LoginConfiguration(
+    permissions: [.publicProfile, .email],
+    tracking: .limited,
+    nonce: "server-generated-nonce"  // Strongly recommended for replay protection
+) else { return }
+
+let loginManager = LoginManager()
+loginManager.logIn(viewController: self, configuration: config) { result in
+    switch result {
+    case .success:
+        // AccessToken.current is nil
+        // AuthenticationToken.current is set
+        self.handleLimitedLoginSuccess()
+    case .cancelled:
+        print("User cancelled")
+    case let .failed(error):
+        print("Error: \(error)")
+    }
+}
+```
+
+<Warning>
+Limited Login does not set `AccessToken.current`. Any code that relies on `AccessToken.current` being non-nil will not work after a Limited Login.
+</Warning>
+
+## Use FBLoginButton with Limited Login
+
+Set `loginTracking` on the button before it appears on screen:
+
+```swift
+let loginButton = FBLoginButton()
+loginButton.permissions = ["public_profile", "email"]
+loginButton.loginTracking = .limited
+loginButton.nonce = "server-generated-nonce"
+view.addSubview(loginButton)
+```
+
+## Access the AuthenticationToken
+
+After a successful Limited Login, `AuthenticationToken.current` contains the OIDC ID token:
+
+```swift
+func handleLimitedLoginSuccess() {
+    guard let authToken = AuthenticationToken.current else { return }
+
+    // Send this to your backend for signature verification
+    let tokenString = authToken.tokenString
+
+    // Verify this nonce matches the one you sent in LoginConfiguration
+    let nonce = authToken.nonce
+
+    sendToServer(token: tokenString, nonce: nonce)
+}
+```
+
+The token is a signed JWT. Your server should verify it using Facebook's public keys (published at Facebook's OIDC discovery endpoint) before trusting any claims.
+
+## Parse AuthenticationTokenClaims
+
+The SDK provides `AuthenticationTokenClaims` to decode the payload of the ID token without sending it to your server first:
+
+```swift
+if let authToken = AuthenticationToken.current,
+   let claims = authToken.claims() {
+    // Standard OIDC claims
+    let userID: String? = claims.sub      // Subject — the user's Facebook ID
+    let name: String? = claims.name
+    let email: String? = claims.email
+    let pictureURL: String? = claims.picture
+    let nonce: String? = claims.nonce
+
+    // Token metadata
+    let issuedAt: TimeInterval = claims.iat
+    let expiration: TimeInterval = claims.exp
+}
+```
+
+<Note>
+The claims available in the token depend on the permissions granted. If the user did not grant `email`, the `email` claim will be `nil`.
+</Note>
+
+## Generate a server-side nonce
+
+The nonce is a one-time value that links the login request on your client to the token your server validates. This prevents replay attacks.
+
+<Steps>
+  <Step title="Generate a nonce on your server">
+    Create a cryptographically random string on your server and associate it with the user's session.
+  </Step>
+  <Step title="Pass it to LoginConfiguration">
+    ```swift
+    guard let config = LoginConfiguration(
+        permissions: [.publicProfile, .email],
+        tracking: .limited,
+        nonce: nonceFromServer
+    ) else { return }
+    ```
+  </Step>
+  <Step title="Verify the nonce on your server">
+    When you receive the `AuthenticationToken`, decode the JWT and confirm the `nonce` claim matches the one you issued. Reject any token where the nonces do not match.
+  </Step>
+</Steps>
+
+<Tip>
+If you do not supply a nonce, the SDK generates a `UUID` automatically. However, you will not be able to verify replay protection on your server unless you supply and track the nonce yourself.
+</Tip>
+
+## When to use Limited Login vs. standard login
+
+Choose Limited Login when:
+
+- Your app only needs to **identify the user** (authenticate), not act on their behalf.
+- You want to reduce the data footprint your app collects from Facebook.
+- You are building an app that targets a privacy-sensitive audience (health, finance, children's apps, etc.).
+- You want a simpler App Store review process by collecting less data.
+
+Use standard login when:
+
+- You need to make **Graph API calls** (reading the user's feed, friends, posting on their behalf).
+- Your app uses Facebook data for features beyond identifying the user.
+- You need a token your backend can use to call the Graph API server-to-server.
+
+## iOS 14 compliance notes
+
+<Note>
+**Limited Login does not replace App Tracking Transparency.** If your app uses the IDFA or tracks users across apps, you still need to request ATT permission via `ATTrackingManager.requestTrackingAuthorization`. Limited Login only affects how Facebook uses the login event — it does not automatically satisfy ATT requirements.
+</Note>
+
+Limited Login sets the `tp=ios_14_do_not_track` parameter in the OAuth request, signaling to Facebook's servers that the user's login event should not be used for measurement or ad targeting.

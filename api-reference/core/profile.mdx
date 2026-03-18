@@ -1,0 +1,236 @@
+---
+title: "Profile"
+description: "An immutable snapshot of a Facebook user's public profile data. Observe Profile.current to react to profile changes throughout your app."
+---
+
+## Overview
+
+`Profile` represents a cached, immutable snapshot of a Facebook user's profile. The SDK fetches profile data from the Graph API `/me` endpoint and stores the result in `UserDefaults`. When the profile changes, the SDK posts a `.profileDidChange` notification so your UI can update.
+
+You can configure the class to automatically refresh whenever `AccessToken.current` changes, which means you typically only need to call `loadCurrentProfile(completion:)` once, or rely on the auto-update behavior.
+
+| | |
+|---|---|
+| **Module** | `FacebookCore` |
+| **Objective-C name** | `FBSDKProfile` |
+| **Availability** | iOS 12+ |
+
+---
+
+## Static properties
+
+<ResponseField name="current" type="Profile?">
+  The profile for the currently logged-in user. `nil` if no user is logged in or the profile has not yet been loaded. Persisted to `UserDefaults.standard` between app launches.
+</ResponseField>
+
+<ResponseField name="isUpdatedWithAccessTokenChange" type="Bool">
+  When `true`, the SDK automatically fetches a new profile from the Graph API whenever `AccessToken.current` changes and the new token belongs to a different user.
+
+  ```swift
+  Profile.isUpdatedWithAccessTokenChange = true
+  ```
+</ResponseField>
+
+---
+
+## Instance properties
+
+<ResponseField name="userID" type="String">
+  The Facebook user identifier.
+</ResponseField>
+
+<ResponseField name="firstName" type="String?">
+  The user's first name.
+</ResponseField>
+
+<ResponseField name="middleName" type="String?">
+  The user's middle name.
+</ResponseField>
+
+<ResponseField name="lastName" type="String?">
+  The user's last name.
+</ResponseField>
+
+<ResponseField name="name" type="String?">
+  The user's complete, formatted name.
+</ResponseField>
+
+<ResponseField name="linkURL" type="URL?">
+  A URL to the user's Facebook profile page.
+
+  <Info>
+    Only populated when the user has granted the `user_link` permission.
+  </Info>
+</ResponseField>
+
+<ResponseField name="refreshDate" type="Date">
+  The date and time when this profile snapshot was last fetched from the Graph API.
+</ResponseField>
+
+<ResponseField name="imageURL" type="URL?">
+  A URL suitable for fetching the user's profile picture. Use `imageURL(forMode:size:)` to request a specific size and crop mode.
+</ResponseField>
+
+<ResponseField name="email" type="String?">
+  The user's email address.
+
+  <Info>
+    Only populated when the user has granted the `email` permission.
+  </Info>
+</ResponseField>
+
+<ResponseField name="friendIDs" type="[String]?">
+  A list of user IDs for the user's friends who also use your app.
+
+  <Info>
+    Only populated when the user has granted the `user_friends` permission.
+  </Info>
+</ResponseField>
+
+<ResponseField name="birthday" type="Date?">
+  The user's birthday.
+
+  <Info>
+    Only populated when the user has granted the `user_birthday` permission.
+  </Info>
+</ResponseField>
+
+<ResponseField name="ageRange" type="UserAgeRange?">
+  The user's age range (e.g., `min: 21`). Useful when you need age verification but the user has not granted the `user_birthday` permission.
+
+  <Info>
+    Only populated when the user has granted the `user_age_range` permission.
+  </Info>
+</ResponseField>
+
+<ResponseField name="hometown" type="Location?">
+  The user's hometown, as a `Location` object containing an `id` and a `name`.
+
+  <Info>
+    Only populated when the user has granted the `user_hometown` permission.
+  </Info>
+</ResponseField>
+
+<ResponseField name="location" type="Location?">
+  The user's current location, as a `Location` object containing an `id` and a `name`.
+
+  <Info>
+    Only populated when the user has granted the `user_location` permission.
+  </Info>
+</ResponseField>
+
+<ResponseField name="gender" type="String?">
+  The user's gender.
+
+  <Info>
+    Only populated when the user has granted the `user_gender` permission.
+  </Info>
+</ResponseField>
+
+<ResponseField name="permissions" type="Set&lt;String&gt;?">
+  The set of permissions the user has granted to your application.
+</ResponseField>
+
+---
+
+## Instance methods
+
+### `imageURL(forMode:size:)`
+
+Returns a URL for fetching the user's profile picture at a specific size and crop mode.
+
+```swift
+public func imageURL(forMode pictureMode: Profile.PictureMode, size: CGSize) -> URL?
+```
+
+<ParamField path="body.pictureMode" type="Profile.PictureMode" required>
+  The crop mode for the image. One of:
+
+  | Value | Description |
+  |-------|-------------|
+  | `.square` | Crops the image to a square. |
+  | `.normal` | Preserves the original aspect ratio. |
+  | `.album` | Preserves the original aspect ratio (album-style). |
+  | `.small` | Preserves the original aspect ratio (small). |
+  | `.large` | Preserves the original aspect ratio (large). |
+</ParamField>
+
+<ParamField path="body.size" type="CGSize" required>
+  The desired width and height in points. Values are rounded to the nearest integer.
+</ParamField>
+
+Returns a Graph API URL, or `nil` if the SDK cannot construct one (e.g., no access token or client token is set).
+
+---
+
+## Static methods
+
+### `loadCurrentProfile(completion:)`
+
+Loads the profile for the current access token and updates `Profile.current`. If a non-expired profile is already cached for the same user, the completion block is called synchronously with the cached value.
+
+```swift
+public static func loadCurrentProfile(completion: ProfileBlock?)
+```
+
+<ParamField path="body.completion" type="ProfileBlock?">
+  A closure called when loading completes. Receives an optional `Profile` and an optional `Error`. Both values can be `nil` if the profile changed mid-flight.
+</ParamField>
+
+---
+
+## Notifications
+
+| Name | Description |
+|------|-------------|
+| `Notification.Name.profileDidChange` | Posted on the default `NotificationCenter` when `Profile.current` changes. |
+
+---
+
+## Usage example
+
+```swift
+import FacebookCore
+
+func setupProfile() {
+    // Automatically refresh the profile whenever the logged-in user changes
+    Profile.isUpdatedWithAccessTokenChange = true
+
+    // Observe profile changes and update your UI
+    NotificationCenter.default.addObserver(
+        forName: .profileDidChange,
+        object: nil,
+        queue: .main
+    ) { _ in
+        self.updateUI(with: Profile.current)
+    }
+
+    // Manually trigger a load
+    Profile.loadCurrentProfile { profile, error in
+        if let error = error {
+            print("Failed to load profile:", error)
+            return
+        }
+
+        guard let profile = profile else { return }
+
+        print("Name:", profile.name ?? "Unknown")
+        print("User ID:", profile.userID)
+
+        // Request a 100×100 square profile picture URL
+        if let imageURL = profile.imageURL(forMode: .square, size: CGSize(width: 100, height: 100)) {
+            // Use imageURL with URLSession or a third-party image loading library
+            print("Profile picture URL:", imageURL)
+        }
+    }
+}
+
+func updateUI(with profile: Profile?) {
+    guard let profile = profile else {
+        // User logged out
+        return
+    }
+    nameLabel.text = profile.name
+    emailLabel.text = profile.email ?? "No email granted"
+}
+```

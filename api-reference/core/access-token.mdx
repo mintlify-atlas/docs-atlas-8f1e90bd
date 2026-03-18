@@ -1,0 +1,170 @@
+---
+title: "AccessToken"
+description: "Represents a user access token for the Facebook Graph API and provides helpers for inspecting permissions and token state."
+---
+
+## Overview
+
+`AccessToken` encapsulates all the data associated with a Facebook user access token: the token string itself, the user and app IDs, the set of granted and declined permissions, and expiry information. The class keeps a global `current` token in sync with login state and notifies observers when it changes.
+
+| | |
+|---|---|
+| **Module** | `FacebookCore` |
+| **Objective-C name** | `FBSDKAccessToken` |
+| **Availability** | iOS 12+ |
+
+---
+
+## Static properties
+
+<ResponseField name="current" type="AccessToken?">
+  The current, active access token for the logged-in user. Set automatically when a user logs in with Facebook Login. Setting this property to `nil` marks the user as logged out.
+
+  ```swift
+  if let token = AccessToken.current {
+      print(token.userID)
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="isCurrentAccessTokenActive" type="Bool">
+  Returns `true` when `current` is non-nil and `isExpired` is `false`.
+
+  ```swift
+  if AccessToken.isCurrentAccessTokenActive {
+      // safe to make authenticated Graph API calls
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="tokenCache" type="TokenCaching?">
+  The cache used to persist and restore the current access token between app launches. The SDK sets this to a `UserDefaults`-backed implementation by default.
+</ResponseField>
+
+---
+
+## Instance properties
+
+<ResponseField name="tokenString" type="String">
+  The raw OAuth token string. Pass this value in the `access_token` parameter of Graph API requests when you need to supply it explicitly.
+</ResponseField>
+
+<ResponseField name="userID" type="String">
+  The Facebook user ID associated with this token.
+</ResponseField>
+
+<ResponseField name="appID" type="String">
+  The Facebook app ID for which this token was issued.
+</ResponseField>
+
+<ResponseField name="permissions" type="Set&lt;Permission&gt;">
+  The set of permissions the user has granted. Use `hasGranted(_:)` to check for a specific permission.
+</ResponseField>
+
+<ResponseField name="declinedPermissions" type="Set&lt;Permission&gt;">
+  The set of permissions the user explicitly declined during a login flow.
+</ResponseField>
+
+<ResponseField name="expiredPermissions" type="Set&lt;Permission&gt;">
+  The set of permissions that have expired and must be re-requested.
+</ResponseField>
+
+<ResponseField name="expirationDate" type="Date">
+  The date and time when this token expires. After this date `isExpired` returns `true`.
+</ResponseField>
+
+<ResponseField name="dataAccessExpirationDate" type="Date">
+  The date and time when data access for this token expires. After this date `isDataAccessExpired` returns `true`, even if the token itself is still valid.
+</ResponseField>
+
+<ResponseField name="refreshDate" type="Date">
+  The date and time when this token was last refreshed.
+</ResponseField>
+
+<ResponseField name="isExpired" type="Bool">
+  Returns `true` when the current date is past `expirationDate`.
+</ResponseField>
+
+<ResponseField name="isDataAccessExpired" type="Bool">
+  Returns `true` when the current date is past `dataAccessExpirationDate`.
+</ResponseField>
+
+---
+
+## Instance methods
+
+### `hasGranted(_:)`
+
+Returns whether the user has granted the given permission.
+
+```swift
+public func hasGranted(_ permission: Permission) -> Bool
+```
+
+<ParamField path="body.permission" type="Permission" required>
+  The permission to check, for example `Permission(stringLiteral: "email")`.
+</ParamField>
+
+Returns `true` if `permission` is in the `permissions` set.
+
+---
+
+## Static methods
+
+### `refreshCurrentAccessToken(_:)`
+
+Attempts to extend the lifetime of `current` by making a token refresh request to the Graph API. The completion block receives the updated token or an error.
+
+```swift
+public static func refreshCurrentAccessToken(
+    _ completion: GraphRequestCompletion?
+)
+```
+
+<ParamField path="body.completion" type="GraphRequestCompletion?">
+  A closure called when the refresh completes. Receives the connection, the raw response, and any error.
+</ParamField>
+
+---
+
+## Notifications
+
+| Name | Description |
+|------|-------------|
+| `Notification.Name.AccessTokenDidChange` | Posted on the default `NotificationCenter` whenever `AccessToken.current` changes. The `userInfo` dictionary contains `AccessTokenChangeNewKey` and `AccessTokenChangeOldKey` for the new and previous token values. |
+
+---
+
+## Usage example
+
+```swift
+import FacebookCore
+
+func checkLoginState() {
+    guard let token = AccessToken.current, !token.isExpired else {
+        // No valid token — prompt the user to log in
+        return
+    }
+
+    print("Logged in as user:", token.userID)
+    print("Token expires:", token.expirationDate)
+
+    if token.hasGranted(Permission(stringLiteral: "email")) {
+        print("Email permission granted")
+    }
+
+    if token.hasGranted(Permission(stringLiteral: "user_friends")) {
+        print("Friends permission granted")
+    }
+}
+
+// Observe token changes
+NotificationCenter.default.addObserver(
+    forName: .AccessTokenDidChange,
+    object: nil,
+    queue: .main
+) { notification in
+    let newToken = notification.userInfo?[AccessTokenChangeNewKey] as? AccessToken
+    print("Token changed. New user ID:", newToken?.userID ?? "none")
+}
+```

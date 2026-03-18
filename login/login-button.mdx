@@ -1,0 +1,150 @@
+---
+title: "Login button"
+description: "Add the FBLoginButton to your iOS app for a ready-made Facebook Login UI."
+---
+
+`FBLoginButton` is a `UIButton` subclass that automatically manages the login and logout flow. When the user is logged out it shows "Continue with Facebook"; when they are logged in it shows "Log out" and presents a confirmation sheet before clearing the session. You do not need to add any tap targets — the button handles everything internally.
+
+## Add the button programmatically
+
+```swift
+import FBSDKLoginKit
+
+class ViewController: UIViewController {
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        let loginButton = FBLoginButton()
+        loginButton.permissions = ["public_profile", "email"]
+        loginButton.delegate = self
+        loginButton.center = view.center
+        view.addSubview(loginButton)
+    }
+}
+```
+
+## Add the button in Interface Builder
+
+<Steps>
+  <Step title="Add a UIButton">
+    Drag a **Button** from the Object Library onto your view.
+  </Step>
+  <Step title="Set the custom class">
+    In the Identity Inspector, set **Class** to `FBLoginButton` and **Module** to `FBSDKLoginKit`.
+  </Step>
+  <Step title="Connect the delegate outlet">
+    Control-drag from the button to your view controller and connect it to the `delegate` `@IBOutlet`.
+  </Step>
+  <Step title="Set permissions in code">
+    In `viewDidLoad`, set the `permissions` property on the connected outlet.
+
+    ```swift
+    @IBOutlet weak var loginButton: FBLoginButton!
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        loginButton.permissions = ["public_profile", "email"]
+    }
+    ```
+  </Step>
+</Steps>
+
+## Set permissions
+
+Assign permission strings to the `permissions` property before the button appears on screen:
+
+```swift
+loginButton.permissions = ["public_profile", "email", "user_friends"]
+```
+
+The button's fixed height is **28 points**. Its width adjusts to fit the label text.
+
+## Configure login tracking
+
+Set `loginTracking` to switch between standard and Limited Login:
+
+```swift
+// Standard login (default)
+loginButton.loginTracking = .enabled
+
+// Limited Login (iOS 14+)
+loginButton.loginTracking = .limited
+```
+
+## Configure a nonce
+
+For OIDC replay protection you can supply a custom nonce. The value must be a non-empty string without whitespace; invalid values are silently ignored and a UUID is used instead:
+
+```swift
+loginButton.nonce = "my-server-generated-nonce"
+```
+
+## Implement LoginButtonDelegate
+
+Conform to `LoginButtonDelegate` to react to login and logout events:
+
+```swift
+extension ViewController: LoginButtonDelegate {
+
+    func loginButton(
+        _ loginButton: FBLoginButton,
+        didCompleteWith result: LoginManagerLoginResult?,
+        error: Error?
+    ) {
+        if let error = error {
+            print("Login error: \(error)")
+            return
+        }
+
+        guard let result = result else { return }
+
+        if result.isCancelled {
+            print("User cancelled login")
+        } else {
+            print("Logged in. Granted: \(result.grantedPermissions)")
+            if let token = result.token {
+                print("Token: \(token.tokenString)")
+            }
+        }
+    }
+
+    func loginButtonDidLogOut(_ loginButton: FBLoginButton) {
+        print("User logged out")
+        // Update your UI
+    }
+
+    // Optional: return false to prevent the login attempt
+    func loginButtonWillLogin(_ loginButton: FBLoginButton) -> Bool {
+        return true
+    }
+}
+```
+
+The delegate methods map to three distinct moments:
+
+| Method | When it fires |
+|---|---|
+| `loginButtonWillLogin(_:)` | Just before the login UI appears. Return `false` to abort. |
+| `loginButton(_:didCompleteWith:error:)` | After the login attempt completes (success, cancel, or error). |
+| `loginButtonDidLogOut(_:)` | After the user confirms logout. |
+
+## Tooltip behavior
+
+The button can show an onboarding tooltip the first time it appears. You can control this with `tooltipBehavior`:
+
+```swift
+loginButton.tooltipBehavior = .automatic   // Show if eligible (default)
+loginButton.tooltipBehavior = .forceDisplay // Always show (useful for testing)
+loginButton.tooltipBehavior = .disable     // Never show
+```
+
+## Default audience
+
+If you request publish permissions, set `defaultAudience` to control the initial sharing scope:
+
+```swift
+loginButton.defaultAudience = .friends  // Default
+loginButton.defaultAudience = .onlyMe
+loginButton.defaultAudience = .everyone
+```

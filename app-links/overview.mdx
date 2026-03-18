@@ -1,0 +1,50 @@
+---
+title: "App Links"
+description: "Handle deep links and route users to specific content inside your iOS app."
+---
+
+App Links is an open protocol developed by Facebook for cross-app and cross-platform linking. An App Link URL carries metadata that tells the receiving device how to open a specific piece of content inside an app, with a web fallback for when the app is not installed.
+
+## Inbound vs outbound App Links
+
+- **Inbound** — your app is the destination. Another app or a web page launches your app via a URL, and your app must read the link data and navigate to the right screen.
+- **Outbound** — your app sends the user somewhere else. You resolve a URL to an `AppLink` object and then navigate to the best available target (native app → browser fallback).
+
+## Deferred deep linking
+
+Deferred deep linking captures the user's intent before your app is installed. When a user taps a link but doesn't have the app installed, Facebook records the URL. On first launch after install, you can call `AppLinkUtility.fetchDeferredAppLink(_:)` to retrieve the original destination URL and route the user directly to the right content.
+
+```swift
+import FBSDKCoreKit
+
+AppLinkUtility.fetchDeferredAppLink { url, error in
+    guard let url = url else { return }
+    // Route the user to the content specified by `url`
+    UIApplication.shared.open(url)
+}
+```
+
+<Note>
+`fetchDeferredAppLink(_:)` only fires on the very first launch after install. Subsequent calls return immediately with `nil`.
+</Note>
+
+## Universal Links vs custom URL schemes
+
+| Mechanism | How it works |
+|---|---|
+| Custom URL scheme | Your app registers a URL scheme (e.g. `myapp://`). iOS opens your app when a URL with that scheme is tapped. |
+| Universal Links | Apple-signed association between a domain and your app. iOS opens your app directly for matching `https://` URLs without showing a disambiguation sheet. |
+
+The Facebook SDK handles both. Forward both `application(_:open:options:)` and `application(_:continue:userActivity:)` to `ApplicationDelegate.shared`.
+
+## Integration with ApplicationDelegate
+
+You must forward URL-related callbacks to `ApplicationDelegate.shared` for App Links (and other SDK features such as Login) to work correctly. See [Handling deep links](/app-links/handling-deeplinks) for the full implementation.
+
+## Next steps
+
+<CardGroup cols={1}>
+  <Card title="Handling deep links" href="/app-links/handling-deeplinks">
+    Implement the required ApplicationDelegate hooks and route incoming App Links.
+  </Card>
+</CardGroup>

@@ -1,0 +1,194 @@
+---
+title: "Tournaments"
+description: "Fetch, update scores in, share, and join Facebook Gaming tournaments on iOS."
+---
+
+Tournaments let players compete against each other on a leaderboard within a defined time window. You can fetch the tournaments a user is part of, update their score, share a tournament to invite others, or prompt the user to join a tournament.
+
+## The Tournament model
+
+`Tournament` is a `Codable` struct representing a single tournament.
+
+| Property | Type | Description |
+|---|---|---|
+| `identifier` | `String` | Unique ID for the tournament. |
+| `endTime` | `Date?` | When the tournament expires. If this date is in the past, the tournament has ended. |
+| `title` | `String?` | Display title set when the tournament was created. |
+| `payload` | `String?` | Custom data string attached to the tournament at creation time. |
+
+## Fetching tournaments
+
+`TournamentFetcher` retrieves all active tournaments where the current user is a participant.
+
+<Note>
+  Both `AuthenticationToken.current` and `AccessToken.current` must be set, and the auth token's graph domain must be `"gaming"`.
+</Note>
+
+```swift
+import FacebookGamingServices
+
+let fetcher = TournamentFetcher()
+
+fetcher.fetchTournaments { result in
+    switch result {
+    case .success(let tournaments):
+        for tournament in tournaments {
+            print("\(tournament.title ?? "Untitled") ends at \(tournament.endTime?.description ?? "unknown")")
+        }
+    case .failure(let error):
+        switch error {
+        case .invalidAuthToken:
+            print("User is not authenticated with a gaming auth token")
+        case .invalidAccessToken:
+            print("No valid access token")
+        case .server(let underlying):
+            print("Server error: \(underlying)")
+        case .decoding:
+            print("Failed to decode tournament data")
+        }
+    }
+}
+```
+
+## Updating a score
+
+Use `TournamentUpdater` to post the player's latest score to a tournament leaderboard.
+
+```swift
+let updater = TournamentUpdater()
+
+updater.update(tournamentID: "123456789", score: 4200) { result in
+    switch result {
+    case .success:
+        print("Score updated successfully")
+    case .failure(let error):
+        print("Failed to update score: \(error)")
+    }
+}
+```
+
+You can also pass a `Tournament` value directly:
+
+```swift
+updater.update(tournament: myTournament, score: 4200) { result in
+    // handle result
+}
+```
+
+## Sharing a tournament
+
+`ShareTournamentDialog` opens a native dialog that shares an existing tournament or creates a brand-new one.
+
+### Share an existing tournament
+
+```swift
+class GameViewController: UIViewController {
+
+    var shareDialog: ShareTournamentDialog?
+
+    func shareTournament(id tournamentID: String, score: Int) {
+        shareDialog = ShareTournamentDialog(delegate: self)
+        try? shareDialog?.show(score: score, tournamentID: tournamentID)
+    }
+}
+
+extension GameViewController: ShareTournamentDialogDelegate {
+
+    func didComplete(dialog: ShareTournamentDialog, tournament: Tournament) {
+        print("Shared tournament: \(tournament.identifier)")
+    }
+
+    func didFail(withError error: Error, dialog: ShareTournamentDialog) {
+        print("Share failed: \(error)")
+    }
+
+    func didCancel(dialog: ShareTournamentDialog) {
+        print("User cancelled sharing")
+    }
+}
+```
+
+### Create and share a new tournament
+
+Use `TournamentConfig` to define the tournament parameters, then call `show(initialScore:config:)`.
+
+```swift
+let config = TournamentConfig(
+    title: "Weekend Challenge",
+    endTime: Date().addingTimeInterval(7 * 24 * 3600),
+    scoreType: .numeric,
+    sortOrder: .higherIsBetter,
+    payload: "round=1"
+)
+
+try? shareDialog?.show(initialScore: 100, config: config)
+```
+
+### TournamentConfig options
+
+| Parameter | Type | Description |
+|---|---|---|
+| `title` | `String?` | Display title for the tournament. |
+| `endTime` | `Date?` | When the tournament ends. Defaults to one week after creation if omitted. |
+| `scoreType` | `TournamentScoreType?` | How scores are formatted. Defaults to `.numeric` if omitted. |
+| `sortOrder` | `TournamentSortOrder?` | Whether a higher or lower score wins. Defaults to `.higherIsBetter` if omitted. |
+| `image` | `UIImage?` | Image displayed alongside tournament posts. |
+| `payload` | `String?` | Custom data string. Must be 1,000 characters or fewer. |
+
+**Score types**
+
+| Value | Description |
+|---|---|
+| `.numeric` | Scores are displayed as numbers. |
+| `.time` | Scores are displayed as a time interval. |
+
+**Sort orders**
+
+| Value | Description |
+|---|---|
+| `.higherIsBetter` | Higher scores rank first. |
+| `.lowerIsBetter` | Lower scores rank first (useful for time-based challenges). |
+
+## Joining a tournament
+
+`JoinTournamentDialog` prompts the user to join a tournament. You can direct them to a specific tournament or let Facebook suggest joinable tournaments.
+
+### Join a specific tournament
+
+```swift
+let joinDialog = JoinTournamentDialog()
+
+joinDialog.showSpecific(tournamentID: "123456789", payload: nil) { result in
+    switch result {
+    case .success(let success):
+        print("Joined tournament: \(success.tournamentID)")
+        if let payload = success.payload {
+            print("Payload: \(payload)")
+        }
+    case .failure(let error):
+        print("Failed to join: \(error)")
+    }
+}
+```
+
+### Show suggested tournaments
+
+```swift
+let joinDialog = JoinTournamentDialog()
+
+joinDialog.showSuggested(payload: nil) { result in
+    switch result {
+    case .success(let success):
+        print("Joined tournament: \(success.tournamentID)")
+    case .failure(let error):
+        print("Error: \(error)")
+    }
+}
+```
+
+On success, the completion handler receives a `JoinTournamentDialogSuccess` value with:
+
+| Property | Type | Description |
+|---|---|---|
+| `tournamentID` | `String` | ID of the tournament that was joined. |
+| `payload` | `String?` | Optional payload associated with the tournament. |

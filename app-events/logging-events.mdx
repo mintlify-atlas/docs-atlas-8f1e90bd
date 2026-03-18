@@ -1,0 +1,145 @@
+---
+title: "Logging events"
+description: "Log standard and custom events to measure user behavior in your iOS app."
+---
+
+## AppEvents.shared
+
+All event logging goes through the `AppEvents.shared` singleton. You access it directly without any setup beyond the standard SDK initialisation in your `AppDelegate`.
+
+```swift
+import FBSDKCoreKit
+
+// Simple event with no parameters
+AppEvents.shared.logEvent(.viewedContent)
+```
+
+## Logging a simple event
+
+Use `logEvent(_:)` when you only need to record that something happened:
+
+```swift
+AppEvents.shared.logEvent(.searched)
+```
+
+## Logging an event with a value
+
+Use `logEvent(_:valueToSum:parameters:)` to attach a numeric value and a parameters dictionary:
+
+```swift
+AppEvents.shared.logEvent(
+    .viewed Content,
+    valueToSum: 9.99,
+    parameters: [
+        .contentType: "product",
+        .contentID: "SKU-12345"
+    ]
+)
+```
+
+## Standard event names
+
+The SDK defines constants for the most common event names. Use these where possible so Facebook can map them to standard event types.
+
+| Swift constant | Raw value |
+|---|---|
+| `AppEvents.Name.viewedContent` | `fb_mobile_content_view` |
+| `AppEvents.Name.searched` | `fb_mobile_search` |
+| `AppEvents.Name.addedToCart` | `fb_mobile_add_to_cart` |
+| `AppEvents.Name.addedToWishlist` | `fb_mobile_add_to_wishlist` |
+| `AppEvents.Name.initiatedCheckout` | `fb_mobile_initiated_checkout` |
+| `AppEvents.Name.addedPaymentInfo` | `fb_mobile_add_payment_info` |
+| `AppEvents.Name.purchased` | `fb_mobile_purchase` |
+| `AppEvents.Name.completedRegistration` | `fb_mobile_complete_registration` |
+| `AppEvents.Name.subscribe` | `Subscribe` |
+| `AppEvents.Name.startTrial` | `StartTrial` |
+
+## Standard parameter names
+
+| Swift constant | Raw value | Description |
+|---|---|---|
+| `AppEvents.ParameterName.contentType` | `fb_content_type` | Type of content viewed |
+| `AppEvents.ParameterName.contentID` | `fb_content_id` | Identifier for the content |
+| `AppEvents.ParameterName.content` | `fb_content` | JSON-encoded content descriptor |
+| `AppEvents.ParameterName.numItems` | `fb_num_items` | Number of items |
+| `AppEvents.ParameterName.paymentInfoAvailable` | `fb_payment_info_available` | Whether payment info is on file |
+| `AppEvents.ParameterName.currency` | `fb_currency` | ISO 4217 currency code |
+| `AppEvents.ParameterName.searchString` | `fb_search_string` | Search query |
+| `AppEvents.ParameterName.success` | `fb_success` | Whether the action succeeded |
+| `AppEvents.ParameterName.registrationMethod` | `fb_registration_method` | How the user registered |
+| `AppEvents.ParameterName.orderID` | `fb_order_id` | Order identifier |
+
+## Logging a purchase
+
+Use the dedicated `logPurchase(purchaseAmount:currency:)` helper for e-commerce transactions:
+
+```swift
+// Simple purchase
+AppEvents.shared.logPurchase(purchaseAmount: 9.99, currency: "USD")
+
+// Purchase with extra parameters
+AppEvents.shared.logPurchase(
+    purchaseAmount: 29.99,
+    currency: "USD",
+    parameters: [
+        .contentID: "SKU-99",
+        .numItems: 2,
+        .contentType: "product"
+    ]
+)
+```
+
+This is equivalent to logging a `FBSDKAppEventNamePurchased` event with the currency injected as a parameter.
+
+## User properties
+
+You can associate user data with events to improve matching and measurement. The SDK hashes all values before transmitting them.
+
+```swift
+AppEvents.shared.setUser(
+    email: "user@example.com",
+    firstName: "Jane",
+    lastName: "Smith",
+    phone: nil,
+    dateOfBirth: nil,
+    gender: nil,
+    city: nil,
+    state: nil,
+    zip: nil,
+    country: nil
+)
+```
+
+Set a persistent user ID to link events across sessions:
+
+```swift
+AppEvents.shared.userID = "your_internal_user_id"
+```
+
+Clear user data when the user logs out:
+
+```swift
+AppEvents.shared.clearUserData()
+AppEvents.shared.userID = nil
+```
+
+## Flush behaviour
+
+By default, the SDK uses `FBSDKAppEventsFlushBehaviorAuto`, which batches events and flushes them when 100 events have accumulated or after 15 seconds, whichever comes first.
+
+To flush immediately — for example, just before your app terminates — call:
+
+```swift
+AppEvents.shared.flush()
+```
+
+To require manual flushing only:
+
+```swift
+AppEvents.shared.flushBehavior = .explicitOnly
+AppEvents.shared.flush() // must call this yourself
+```
+
+<Tip>
+Use `FBSDKAppEventsFlushBehaviorExplicitOnly` during testing so you can control exactly when events are sent and verify them in Events Manager.
+</Tip>

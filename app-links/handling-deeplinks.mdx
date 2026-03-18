@@ -1,0 +1,156 @@
+---
+title: "Handling deep links"
+description: "Process inbound App Links and implement deep link routing in your iOS app."
+---
+
+## Required ApplicationDelegate integration
+
+The Facebook SDK processes inbound URLs through `ApplicationDelegate.shared`. You must forward two `UIApplicationDelegate` callbacks to it — one for custom URL schemes and one for Universal Links.
+
+<Steps>
+  <Step title="Forward URL-scheme opens">
+    In your app delegate, call `ApplicationDelegate.shared.application(_:open:options:)` from `application(_:open:options:)`:
+
+    ```swift
+    import FBSDKCoreKit
+    import UIKit
+
+    @UIApplicationMain
+    class AppDelegate: UIResponder, UIApplicationDelegate {
+
+        func application(
+            _ app: UIApplication,
+            open url: URL,
+            options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+        ) -> Bool {
+            return ApplicationDelegate.shared.application(
+                app,
+                open: url,
+                options: options
+            )
+        }
+    }
+    ```
+  </Step>
+  <Step title="Forward Universal Link continuations">
+    Call `ApplicationDelegate.shared.application(_:continue:)` from `application(_:continue:restorationHandler:)` to handle Universal Links:
+
+    ```swift
+    func application(
+        _ application: UIApplication,
+        continue userActivity: NSUserActivity,
+        restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
+    ) -> Bool {
+        return ApplicationDelegate.shared.application(
+            application,
+            continue: userActivity
+        )
+    }
+    ```
+
+    The SDK checks that `userActivity.activityType == NSUserActivityTypeBrowsingWeb` and extracts `userActivity.webpageURL` before passing it through the same URL-handling path as custom scheme URLs.
+  </Step>
+  <Step title="Initialise the SDK on launch">
+    Call `ApplicationDelegate.shared.application(_:didFinishLaunchingWithOptions:)` to initialise the SDK and register App Link measurement listeners:
+
+    ```swift
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+        ApplicationDelegate.shared.application(
+            application,
+            didFinishLaunchingWithOptions: launchOptions
+        )
+        return true
+    }
+    ```
+  </Step>
+</Steps>
+
+## How the SDK handles App Link URLs
+
+When an inbound URL arrives, `ApplicationDelegate` calls `logIfAppLinkEvent(url:)` which checks the `al_applink_data` query parameter. If the parameter is present, the SDK parses the JSON payload and logs an internal `fb_al_inbound` event with the following data:
+
+| Field | Key in `al_applink_data` |
+|---|---|
+| Target URL | `target_url` |
+| Referral target URL | `referer_data.target_url` |
+| Referral URL | `referer_data.url` |
+| Referral app name | `referer_data.app_name` |
+
+## Parsing App Link data manually
+
+If you need to inspect the raw App Link payload yourself, read the `al_applink_data` query parameter from the URL:
+
+```swift
+func handleIncomingURL(_ url: URL) {
+    guard
+        let query = url.query,
+        let components = URLComponents(string: "?" + query),
+        let item = components.queryItems?.first(where: { $0.name == "al_applink_data" }),
+        let jsonString = item.value,
+        let data = jsonString.data(using: .utf8),
+        let appLinkData = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else { return }
+
+    let targetURLString = appLinkData["target_url"] as? String
+    print("App Link target:", targetURLString ?? "")
+}
+```
+
+## Deferred deep link detection
+
+Use `AppLinkUtility.fetchDeferredAppLink(_:)` on first launch to retrieve a URL that was recorded before the app was installed:
+
+```swift
+import FBSDKCoreKit
+
+func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+) -> Bool {
+    ApplicationDelegate.shared.application(
+        application,
+        didFinishLaunchingWithOptions: launchOptions
+    )
+
+    // Check for a deferred deep link from before install
+    AppLinkUtility.fetchDeferredAppLink { url, error in
+        guard let url = url, error == nil else { return }
+        // Route to the intended content
+        UIApplication.shared.open(url)
+    }
+
+    return true
+}
+```
+
+<Warning>
+`fetchDeferredAppLink(_:)` requires `FacebookAutoLogAppEventsEnabled` to be enabled and the user's advertiser tracking to be allowed. It silently returns an error if tracking is not enabled.
+</Warning>
+
+## Outbound navigation with AppLinkNavigation
+
+To navigate outbound to a URL that may have an App Link target, resolve it first and then navigate:
+
+```swift
+import FBSDKCoreKit
+
+guard let destination = URL(string: "https://example.com/some-content") else { return }
+
+AppLinkNavigation.navigate(to: destination) { navigationType, error in
+    switch navigationType {
+    case .app:
+        print("Opened in native app")
+    case .browser:
+        print("Opened in browser")
+    case .failure:
+        print("Navigation failed:", error?.localizedDescription ?? "")
+    @unknown default:
+        break
+    }
+}
+```
+
+The SDK attempts each target in order — native app first, then the web fallback URL.

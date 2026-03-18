@@ -1,0 +1,167 @@
+---
+title: "SDK configuration"
+description: "Reference for all Info.plist keys, URL scheme setup, and runtime settings available in the Facebook SDK for iOS."
+---
+
+The SDK reads its initial configuration from your app's `Info.plist`. You can also override most settings at runtime using `Settings.shared`.
+
+## Info.plist keys
+
+### Required keys
+
+The following keys must be present in `Info.plist` for the SDK to function correctly.
+
+<ParamField path="FacebookAppID" type="String" required>
+  Your Facebook App ID. The SDK reads this value on launch via `Settings.appID`. Find it in your [Meta App Dashboard](https://developers.facebook.com/apps).
+
+  ```xml
+  <key>FacebookAppID</key>
+  <string>YOUR_APP_ID</string>
+  ```
+</ParamField>
+
+<ParamField path="FacebookClientToken" type="String" required>
+  Your app's client token, used for certain anonymous API calls that don't require a user access token. Find it in your app dashboard under **Settings → Advanced → Security → Client token**.
+
+  ```xml
+  <key>FacebookClientToken</key>
+  <string>YOUR_CLIENT_TOKEN</string>
+  ```
+</ParamField>
+
+<ParamField path="FacebookDisplayName" type="String" required>
+  The display name shown to users during Facebook Login and in sharing dialogs. This should match the name configured in your Meta App Dashboard.
+
+  ```xml
+  <key>FacebookDisplayName</key>
+  <string>Your App Name</string>
+  ```
+</ParamField>
+
+### URL scheme allowlist
+
+<ParamField path="LSApplicationQueriesSchemes" type="Array<String>">
+  Declares the URL schemes your app is allowed to query with `canOpenURL`. Add all four values so the SDK can detect whether the Facebook app, Messenger, and share extensions are installed.
+
+  ```xml
+  <key>LSApplicationQueriesSchemes</key>
+  <array>
+    <string>fbapi</string>
+    <string>fb-messenger-share-api</string>
+    <string>fbauth2</string>
+    <string>fbshareextension</string>
+  </array>
+  ```
+</ParamField>
+
+### Optional keys
+
+<ParamField path="FacebookAutoLogAppEventsEnabled" type="Boolean" default="true">
+  Controls whether the SDK automatically logs app events like `activateApp` and `deactivateApp`. Set to `false` to disable automatic logging and call `AppEvents.shared.activateApp()` manually when appropriate.
+
+  ```xml
+  <key>FacebookAutoLogAppEventsEnabled</key>
+  <false/>
+  ```
+
+  You can also set this at runtime:
+
+  ```swift
+  Settings.shared.isAutoLogAppEventsEnabled = false
+  ```
+</ParamField>
+
+<ParamField path="FacebookAdvertiserIDCollectionEnabled" type="Boolean" default="true">
+  Controls whether the SDK collects the device's Advertiser ID (IDFA). If your app does not use the AppTrackingTransparency framework and cannot obtain tracking authorization, set this to `false`.
+
+  ```xml
+  <key>FacebookAdvertiserIDCollectionEnabled</key>
+  <false/>
+  ```
+
+  Runtime equivalent:
+
+  ```swift
+  Settings.shared.isAdvertiserIDCollectionEnabled = false
+  ```
+
+  <Warning>
+    Disabling advertiser ID collection reduces the effectiveness of Meta's ad measurement and optimization features.
+  </Warning>
+</ParamField>
+
+<ParamField path="FBSDKAemAutoSetupEnabled" type="Boolean" default="true">
+  Controls whether Aggregated Event Measurement (AEM) is set up automatically on iOS 14+. Set to `false` if you want to initialize AEM manually.
+
+  ```xml
+  <key>FBSDKAemAutoSetupEnabled</key>
+  <false/>
+  ```
+</ParamField>
+
+## URL scheme configuration
+
+The SDK uses a custom URL scheme to receive callbacks from the Facebook app and Safari after authentication or sharing flows. Register it in `Info.plist` under `CFBundleURLTypes`:
+
+```xml
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>fbYOUR_APP_ID</string>
+    </array>
+  </dict>
+</array>
+```
+
+Replace `YOUR_APP_ID` with your numeric Facebook App ID. For example, if your App ID is `1234567890`, the scheme is `fb1234567890`.
+
+<Note>
+  You can add this URL scheme in Xcode by going to your target's **Info** tab, expanding **URL Types**, and clicking the **+** button. Set the URL scheme to `fb` followed by your App ID.
+</Note>
+
+## Runtime configuration with Settings
+
+In addition to `Info.plist`, you can configure the SDK programmatically through `Settings.shared`. Set these values before the SDK initializes (before `application(_:didFinishLaunchingWithOptions:)` returns) to ensure they take effect.
+
+```swift
+import FacebookCore
+
+// Override the App ID read from Info.plist
+Settings.shared.appID = "YOUR_APP_ID"
+
+// Disable automatic app event logging
+Settings.shared.isAutoLogAppEventsEnabled = false
+
+// Disable advertiser ID collection
+Settings.shared.isAdvertiserIDCollectionEnabled = false
+
+// Enable SDK logging for debugging
+Settings.shared.enableLoggingBehavior(.networkRequests)
+Settings.shared.enableLoggingBehavior(.developerErrors)
+```
+
+### Common Settings properties
+
+| Property | Type | Description |
+|---|---|---|
+| `Settings.shared.appID` | `String?` | The Facebook App ID. Defaults to `FacebookAppID` in `Info.plist`. |
+| `Settings.shared.clientToken` | `String?` | The client token. Defaults to `FacebookClientToken` in `Info.plist`. |
+| `Settings.shared.displayName` | `String?` | The app display name. Defaults to `FacebookDisplayName` in `Info.plist`. |
+| `Settings.shared.isAutoLogAppEventsEnabled` | `Bool` | Enables automatic app event logging. Default: `true`. |
+| `Settings.shared.isAdvertiserIDCollectionEnabled` | `Bool` | Enables IDFA collection. Default: `true`. |
+| `Settings.shared.isAdvertiserTrackingEnabled` | `Bool` | Reflects ATTrackingManager authorization status on iOS 17+. |
+| `Settings.shared.sdkVersion` | `String` | The current SDK version string (read-only). |
+
+## App Transport Security
+
+The Facebook SDK communicates exclusively over HTTPS, so no App Transport Security exceptions are required. Do not add `NSAllowsArbitraryLoads` to your `Info.plist` — this would weaken your app's security posture and may trigger App Store review issues.
+
+<Tip>
+  If you see network errors in development, enable network request logging to inspect what the SDK is sending:
+
+  ```swift
+  Settings.shared.enableLoggingBehavior(.networkRequests)
+  ```
+</Tip>

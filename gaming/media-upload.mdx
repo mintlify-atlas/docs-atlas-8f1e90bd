@@ -1,0 +1,151 @@
+---
+title: "Media upload"
+description: "Upload images and videos to a user's Gaming Media Library using GamingImageUploader and GamingVideoUploader on iOS."
+---
+
+The Gaming Services SDK lets you upload images and videos directly to a user's Facebook Gaming Media Library. After a successful upload you can optionally launch the native media sharing dialog so the user can share the content immediately.
+
+<Note>
+  A valid `AccessToken.current` is required for both image and video uploads. Calls made without an access token will fail with an error.
+</Note>
+
+## Uploading images
+
+Use `GamingImageUploader` to upload a `UIImage` to the user's Gaming Media Library.
+
+### Configure the upload
+
+Create a `GamingImageUploaderConfiguration` with the image you want to upload.
+
+```swift
+import FacebookGamingServices
+import UIKit
+
+let image = UIImage(named: "screenshot")!
+
+let configuration = GamingImageUploaderConfiguration(
+    image: image,
+    caption: "Check out my high score!",
+    shouldLaunchMediaDialog: true
+)
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `image` | `UIImage` | The image to upload. The SDK converts it to PNG data before sending. |
+| `caption` | `String?` | Optional text that appears alongside the image on Facebook. |
+| `shouldLaunchMediaDialog` | `Bool` | When `true`, opens the Facebook media dialog after a successful upload so the user can share the image. |
+
+### Start the upload
+
+```swift
+GamingImageUploader.uploadImage(with: configuration) { success, result, error in
+    if let error = error {
+        print("Upload failed: \(error.localizedDescription)")
+        return
+    }
+    if success {
+        let mediaID = result?["id"] as? String ?? ""
+        print("Uploaded image with ID: \(mediaID)")
+    }
+}
+```
+
+The `result` dictionary contains an `"id"` key with the uploaded photo's ID when `shouldLaunchMediaDialog` is `false`. When `shouldLaunchMediaDialog` is `true`, the completion fires after the user returns from the media dialog.
+
+### Track upload progress
+
+Pass an optional progress handler to monitor bytes transferred:
+
+```swift
+GamingImageUploader.uploadImage(
+    with: configuration,
+    completion: { success, result, error in
+        // handle completion
+    },
+    andProgressHandler: { bytesSent, totalBytesSent, totalBytesExpectedToSend in
+        let progress = Double(totalBytesSent) / Double(totalBytesExpectedToSend)
+        print("Upload progress: \(Int(progress * 100))%")
+    }
+)
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `bytesSent` | `Int64` | Bytes sent since the last invocation. |
+| `totalBytesSent` | `Int64` | Total bytes sent so far. |
+| `totalBytesExpectedToSend` | `Int64` | Total size of the upload. |
+
+## Uploading videos
+
+Use `GamingVideoUploader` to upload a video file from local disk.
+
+### Configure the upload
+
+```swift
+let videoURL = URL(fileURLWithPath: "/path/to/gameplay.mp4")
+
+let configuration = GamingVideoUploaderConfiguration(
+    videoURL: videoURL,
+    caption: "Epic win!"
+)
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `videoURL` | `URL` | A file URL pointing to the video on disk. |
+| `caption` | `String?` | Optional text that appears alongside the video on Facebook. |
+
+<Warning>
+  The video file must not be empty. Passing an empty file causes the upload to fail immediately.
+</Warning>
+
+### Start the upload
+
+```swift
+GamingVideoUploader.uploadVideo(configuration: configuration) { success, result, error in
+    if let error = error {
+        print("Upload failed: \(error.localizedDescription)")
+        return
+    }
+    if success {
+        let videoID = result?["video_id"] as? String ?? ""
+        print("Uploaded video with ID: \(videoID)")
+    }
+}
+```
+
+The `result` dictionary contains a `"video_id"` key with the uploaded video's ID.
+
+### Track upload progress
+
+```swift
+GamingVideoUploader.uploadVideo(
+    configuration: configuration,
+    completion: { success, result, error in
+        // handle completion
+    },
+    progressHandler: { bytesSent, totalBytesSent, totalBytesExpectedToSend in
+        let progress = Double(totalBytesSent) / Double(totalBytesExpectedToSend)
+        print("Upload progress: \(Int(progress * 100))%")
+    }
+)
+```
+
+## Completion handler signatures
+
+Both uploaders use the same result completion type:
+
+```swift
+typealias GamingServiceResultCompletion = (_ success: Bool, _ result: [String: Any]?, _ error: Error?) -> Void
+```
+
+And the same progress handler type:
+
+```swift
+typealias GamingServiceProgressHandler = (
+    _ bytesSent: Int64,
+    _ totalBytesSent: Int64,
+    _ totalBytesExpectedToSend: Int64
+) -> Void
+```

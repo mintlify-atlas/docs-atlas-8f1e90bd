@@ -1,0 +1,177 @@
+---
+title: "iOS 14 privacy & data disclosure"
+description: "Configure App Tracking Transparency, manage advertiser ID collection, and understand App Store data disclosure requirements for the Facebook SDK."
+---
+
+iOS 14 introduced significant changes to how apps collect and share data with advertising networks. This guide covers what you need to do to comply with Apple's privacy requirements when using the Facebook SDK.
+
+## App Tracking Transparency
+
+Starting with iOS 14.5, Apple requires apps to request explicit user permission before tracking them across apps and websites owned by other companies. This is enforced through the App Tracking Transparency (ATT) framework.
+
+The Facebook SDK reads `ATTrackingManager.trackingAuthorizationStatus` directly on iOS 17+ to determine whether advertiser tracking is enabled. You do not need to set `Settings.shared.isAdvertiserTrackingEnabled` manually — the SDK derives this from the ATT status.
+
+### Add the usage description
+
+Before calling `ATTrackingManager.requestTrackingAuthorization`, you must add `NSUserTrackingUsageDescription` to your app's `Info.plist`. Apple will reject your app from the App Store if this key is missing and your app uses the ATT framework.
+
+```xml
+<key>NSUserTrackingUsageDescription</key>
+<string>This identifier will be used to deliver personalized ads to you.</string>
+```
+
+Write a description that clearly explains to users why your app needs to track them. Vague descriptions like "for advertising purposes" are more likely to be dismissed by users and may be flagged during App Review.
+
+### Request authorization at the right time
+
+Request tracking permission at a moment where the context makes the benefit clear to the user — for example, after they have completed onboarding or before showing an ad.
+
+```swift
+import AppTrackingTransparency
+import FBSDKCoreKit
+
+func requestTrackingPermission() {
+    ATTrackingManager.requestTrackingAuthorization { status in
+        switch status {
+        case .authorized:
+            // Tracking is authorized; the SDK will use the advertiser ID.
+            print("Tracking authorized")
+        case .denied, .restricted:
+            // Tracking denied; the SDK operates without the advertiser ID.
+            print("Tracking denied")
+        case .notDetermined:
+            // The user has not yet been asked.
+            break
+        @unknown default:
+            break
+        }
+    }
+}
+```
+
+<Note>
+Call `requestTrackingAuthorization` before initializing the Facebook SDK if you want the SDK to have the correct tracking status from first launch. Alternatively, call it early in your app's lifecycle and initialize the SDK after the completion handler fires.
+</Note>
+
+## Advertiser ID collection
+
+The `FacebookAdvertiserIDCollectionEnabled` key in `Info.plist` controls whether the SDK collects the device's Identifier for Advertisers (IDFA). This is separate from ATT authorization — you can disable collection independently of what the user chooses in the ATT prompt.
+
+Add this key to your `Info.plist` to disable IDFA collection entirely:
+
+```xml
+<key>FacebookAdvertiserIDCollectionEnabled</key>
+<false/>
+```
+
+You can also control this at runtime through `Settings.shared`:
+
+```swift
+import FBSDKCoreKit
+
+// Disable IDFA collection
+Settings.shared.isAdvertiserIDCollectionEnabled = false
+
+// Re-enable IDFA collection
+Settings.shared.isAdvertiserIDCollectionEnabled = true
+```
+
+The default value is `true`. If you disable IDFA collection, attribution accuracy will be reduced but your app will still function.
+
+## Limited Login
+
+Limited Login is a privacy-preserving login mode that restricts what data Facebook receives from your app. When you use Limited Login, Facebook does not use the login event for ad targeting or measurement.
+
+To use Limited Login, set the `tracking` property of `LoginConfiguration` to `.limited`:
+
+```swift
+import FBSDKLoginKit
+
+let config = LoginConfiguration(
+    permissions: ["email"],
+    tracking: .limited
+)
+
+let loginManager = LoginManager()
+loginManager.logIn(viewController: self, configuration: config) { result in
+    switch result {
+    case .success(let result):
+        // result.token is nil in limited mode; use result.authenticationToken instead.
+        if let token = result.authenticationToken {
+            print("Limited login succeeded with token: \(token)")
+        }
+    case .cancelled:
+        print("Login cancelled")
+    case .failed(let error):
+        print("Login failed: \(error)")
+    }
+}
+```
+
+In Limited Login mode:
+
+- `AccessToken.current` is not set — you receive an `AuthenticationToken` (an OpenID Connect ID token) instead.
+- The SDK does not send app events associated with the login flow to Facebook for ad targeting.
+- You can still verify the user's identity using the ID token.
+
+<Tip>
+Use Limited Login when your app targets users who are likely to be privacy-conscious or when you want to offer a login option that explicitly does not contribute to ad targeting.
+</Tip>
+
+## App Store data disclosure
+
+Apple requires you to declare in App Store Connect what data types your app collects and how they are used. Because the Facebook SDK collects certain data on your behalf, you must include that data in your privacy nutrition label.
+
+The following data types are commonly associated with the Facebook SDK. Review each one and disclose it if you have not explicitly disabled the corresponding feature.
+
+| Data type | Collected by | How to disable |
+|---|---|---|
+| Device ID (IDFA) | FBSDKCoreKit | Set `FacebookAdvertiserIDCollectionEnabled` to `false` in `Info.plist` |
+| Purchase history | FBSDKCoreKit (auto-logged IAP events) | Set `FacebookAutoLogAppEventsEnabled` to `false` |
+| Crash data | FBSDKCoreKit | Cannot be disabled |
+| Usage data (app events) | FBSDKCoreKit | Set `FacebookAutoLogAppEventsEnabled` to `false` |
+| User ID | FBSDKLoginKit | Not applicable if you do not use Login |
+
+<Warning>
+It is your responsibility to ensure your App Store privacy disclosures are accurate and complete. This table is a starting point — review the [Apple App Store privacy details](https://developer.apple.com/app-store/app-privacy-details/) article and the [Facebook data disclosure guidance](https://developers.facebook.com/blog/post/2020/10/22/preparing-for-apple-app-store-data-disclosure-requirements/) for the full list.
+</Warning>
+
+To disable automatic app event logging (which includes purchase events):
+
+```xml
+<key>FacebookAutoLogAppEventsEnabled</key>
+<false/>
+```
+
+## SKAdNetwork integration
+
+The Facebook SDK automatically handles SKAdNetwork registration and conversion value updates. You do not need to call any SKAdNetwork APIs directly — the SDK calls `SKAdNetwork.registerAppForAdNetworkAttribution()` and updates conversion values as events are logged.
+
+SKAdNetwork reporting is enabled by default. To disable it:
+
+```swift
+Settings.shared.isSKAdNetworkReportEnabled = false
+```
+
+Or via `Info.plist`:
+
+```xml
+<key>SKAdNetworkReportEnabled</key>
+<false/>
+```
+
+<Note>
+Disabling SKAdNetwork reporting means Facebook will not receive install attribution signals through the privacy-preserving SKAdNetwork channel. This may reduce the accuracy of your campaign measurement.
+</Note>
+
+## Aggregated Event Measurement
+
+Aggregated Event Measurement (AEM) is Facebook's privacy-safe attribution framework for iOS 14+. It enables you to measure the effectiveness of your ads without relying on user-level data or the IDFA.
+
+The SDK handles AEM automatically when your app opens deep links from Facebook. AEM works by:
+
+1. Embedding an encrypted attribution token in deep links from Facebook ads.
+2. The SDK reads this token when your app opens the link.
+3. Conversion events are reported in aggregate without exposing individual user data.
+
+AEM does not require ATT authorization and is compatible with Limited Login. It is the recommended approach for measuring ad performance on iOS 14 and later.

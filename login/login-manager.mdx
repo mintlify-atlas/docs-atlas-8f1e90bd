@@ -1,0 +1,159 @@
+---
+title: "LoginManager"
+description: "Use LoginManager to programmatically log users in and out of your iOS app with Facebook."
+---
+
+`LoginManager` is the primary class for triggering the Facebook Login flow. It handles browser or native app switching, the OAuth callback, token storage, and logout. You interact with it directly when you want full control over when and how the login UI appears.
+
+## Instantiate LoginManager
+
+```swift
+let loginManager = LoginManager()
+```
+
+You can also set the default audience at init time if you intend to request publish permissions:
+
+```swift
+let loginManager = LoginManager(defaultAudience: .friends)
+```
+
+The `defaultAudience` property controls the initial audience for posts made through your app. The available values are:
+
+| Value | Description |
+|---|---|
+| `.friends` | The user's friends can see posts (default) |
+| `.onlyMe` | Only the user can see posts |
+| `.everyone` | All Facebook users can see posts |
+
+## Check for a cached token first
+
+Before calling `logIn`, check whether the user is already authenticated. Doing this in `viewDidLoad` avoids an unnecessary login prompt:
+
+```swift
+override func viewDidLoad() {
+    super.viewDidLoad()
+
+    if let token = AccessToken.current, !token.isExpired {
+        // Already logged in — update your UI
+        showLoggedInState(token: token)
+    }
+}
+```
+
+## Log in with a configuration
+
+Build a `LoginConfiguration` with the permissions you need, then call `logIn(viewController:configuration:completion:)`:
+
+```swift
+func logInWithFacebook() {
+    guard let config = LoginConfiguration(
+        permissions: [.publicProfile, .email],
+        tracking: .enabled
+    ) else { return }
+
+    loginManager.logIn(viewController: self, configuration: config) { result in
+        self.handleLoginResult(result)
+    }
+}
+```
+
+<Warning>
+You can only perform one login call at a time. Calling `logIn` again before the previous completion handler fires will result in an error.
+</Warning>
+
+<Note>
+Pass `nil` for `viewController` and the SDK will determine the topmost view controller automatically.
+</Note>
+
+## Handle the LoginResult
+
+The completion block receives a `LoginResult`, which is a Swift enum with three cases:
+
+```swift
+func handleLoginResult(_ result: LoginResult) {
+    switch result {
+    case let .success(granted, declined, token):
+        print("Granted permissions: \(granted.map(\.name))")
+        if !declined.isEmpty {
+            print("Declined permissions: \(declined.map(\.name))")
+        }
+        if let token = token {
+            print("Access token: \(token.tokenString)")
+        }
+
+    case .cancelled:
+        print("User cancelled the login")
+
+    case let .failed(error):
+        print("Login failed with error: \(error)")
+    }
+}
+```
+
+The `granted` and `declined` sets reflect only the permissions affected in *this* login request, not the full historical set. Check `AccessToken.current?.permissions` for the complete granted set.
+
+## Log out
+
+Call `logOut()` to clear the cached `AccessToken`, `AuthenticationToken`, and `Profile`:
+
+```swift
+func logOut() {
+    loginManager.logOut()
+    // AccessToken.current is now nil
+    showLoggedOutState()
+}
+```
+
+<Note>
+This is a client-side logout only. It does not revoke the token on Facebook's servers or log the user out of the Facebook app.
+</Note>
+
+## Reauthorize data access
+
+Facebook periodically expires data access for inactive users. When `AccessToken.isDataAccessExpired` is `true`, call `reauthorizeDataAccess(from:handler:)` to restore it without asking for new permissions:
+
+```swift
+func reauthorizeIfNeeded() {
+    guard let token = AccessToken.current, token.isDataAccessExpired else { return }
+
+    loginManager.reauthorizeDataAccess(from: self) { result, error in
+        if let error = error {
+            print("Reauthorization failed: \(error)")
+        } else {
+            print("Data access restored")
+        }
+    }
+}
+```
+
+<Warning>
+`reauthorizeDataAccess` requires an existing `AccessToken.current`. Calling it without one will return an error with code `LoginError.missingAccessToken`.
+</Warning>
+
+## Request additional permissions
+
+If a feature in your app needs permissions you did not request at login, call `logIn` again with the new permissions. The SDK shows the Facebook dialog only for the permissions not yet granted:
+
+```swift
+func requestEmailPermission() {
+    guard let config = LoginConfiguration(
+        permissions: [.email],
+        tracking: .enabled
+    ) else { return }
+
+    loginManager.logIn(viewController: self, configuration: config) { result in
+        switch result {
+        case let .success(granted, declined, _):
+            if declined.contains(.email) {
+                // User declined email — explain why it's needed
+            }
+        case .cancelled, .failed:
+            break
+        }
+    }
+}
+```
+
+<Tip>
+Do not request all permissions upfront. Request each permission at the moment your app needs it, so users understand why the data is required.
+</Tip>

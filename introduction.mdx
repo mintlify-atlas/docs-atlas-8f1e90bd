@@ -1,0 +1,58 @@
+---
+title: "Introduction"
+description: "The Facebook SDK for iOS lets you integrate Facebook platform features — login, sharing, analytics, and more — directly into your iOS app."
+---
+
+The Facebook SDK for iOS is an open-source library that gives your app access to the Facebook platform. Use it to authenticate users with Facebook Login, share content, log app events for analytics, access the Graph API, and integrate with Facebook Gaming Services.
+
+The current release is **v18.0.3**, targeting iOS 12+ and Swift 5.3+.
+
+## Modules
+
+The SDK is split into focused modules so you only include what your app needs.
+
+<CardGroup cols={2}>
+  <Card title="FacebookCore" icon="cube" href="/getting-started/installation">
+    The foundation of the SDK. Provides app events, Graph API access, access token management, and user profiles. Required by all other modules.
+  </Card>
+  <Card title="FacebookLogin" icon="right-to-bracket" href="/getting-started/quickstart">
+    Facebook Login lets users sign in to your app with their Facebook account. Handles authentication tokens and permissions.
+  </Card>
+  <Card title="FacebookShare" icon="share-nodes" href="/getting-started/installation">
+    Share dialogs and message dialogs for posting content — links, photos, and videos — to Facebook from your app.
+  </Card>
+  <Card title="FacebookGamingServices" icon="gamepad" href="/getting-started/installation">
+    Gaming-specific integrations including tournaments, game requests, and Friend Finder for Facebook Gaming.
+  </Card>
+  <Card title="FacebookAEM" icon="chart-bar" href="/getting-started/configuration">
+    Aggregated Event Measurement (AEM) for privacy-preserving conversion reporting on iOS 14+.
+  </Card>
+</CardGroup>
+
+## Platform requirements
+
+| Requirement | Minimum version |
+|---|---|
+| iOS | 12.0 |
+| tvOS | 12.0 |
+| Swift | 5.3 |
+| Xcode | 12.0 |
+
+## What you can build
+
+- **Authentication** — Let users log in with Facebook and request permissions like `email` and `public_profile`.
+- **Social sharing** — Add share sheets so users can post to their timeline or send messages.
+- **Analytics** — Log app events automatically or manually and view them in Meta Events Manager.
+- **Graph API** — Make authenticated requests to the Facebook Graph API to read and write social data.
+- **App Links** — Deep-link users back into your app from Facebook content.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/getting-started/installation">
+    Add the SDK to your project using Swift Package Manager, CocoaPods, or Carthage.
+  </Card>
+  <Card title="Quickstart" icon="bolt" href="/getting-started/quickstart">
+    Configure your app ID, set up your URL scheme, and get Facebook Login running in minutes.
+  </Card>
+</CardGroup>

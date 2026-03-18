@@ -1,0 +1,265 @@
+---
+title: "TournamentFetcher"
+description: "Fetches the tournaments that the current user is participating in, and updates scores via TournamentUpdater."
+---
+
+## Overview
+
+`TournamentFetcher` retrieves the list of tournaments in which the current logged-in user is a participant. It requires both a valid `AuthenticationToken` with the `gaming` graph domain and a valid `AccessToken`.
+
+`TournamentUpdater` is a companion class that posts a new score to a specific tournament.
+
+**Module:** `FBSDKGamingServicesKit`  
+**Declared in:** `TournamentFetcher.swift`, `TournamentUpdater.swift`
+
+---
+
+## `TournamentFetcher`
+
+### Initializer
+
+```swift
+public convenience init()
+```
+
+Creates a `TournamentFetcher` with the default `GraphRequestFactory`. You typically use this initializer directly.
+
+---
+
+### Methods
+
+#### `fetchTournaments(completionHandler:)`
+
+Fetches all tournaments where the current user is a participant.
+
+```swift
+public func fetchTournaments(
+    completionHandler: @escaping (Result<[Tournament], TournamentFetchError>) -> Void
+)
+```
+
+<ParamField path="completionHandler" type="(Result&lt;[Tournament], TournamentFetchError&gt;) -> Void">
+  A closure called on completion. On success, receives an array of `Tournament` values. On failure, receives a `TournamentFetchError`.
+</ParamField>
+
+**Preconditions:**
+- `AuthenticationToken.current` must be non-nil and have `graphDomain == "gaming"`.
+- `AccessToken.current` must be non-nil.
+
+If either condition is not met, the completion is called immediately with `.failure(.invalidAuthToken)` or `.failure(.invalidAccessToken)` respectively.
+
+---
+
+### `TournamentFetchError` enum
+
+| Case | Description |
+|------|-------------|
+| `.server(Error)` | The Graph API returned an error. The associated value is the underlying error. |
+| `.decoding` | The response could not be decoded into `[Tournament]`. |
+| `.invalidAuthToken` | `AuthenticationToken.current` is `nil` or not in the `gaming` domain. |
+| `.invalidAccessToken` | `AccessToken.current` is `nil`. |
+
+---
+
+## `Tournament` model
+
+`Tournament` is a `Codable` struct that represents a single tournament.
+
+### Properties
+
+<ResponseField name="identifier" type="String">
+  The unique identifier for this tournament. Corresponds to the `id` field in the Graph API response.
+</ResponseField>
+
+<ResponseField name="endTime" type="Date?">
+  The timestamp when the tournament ends. If this date is in the past, the tournament has expired.
+</ResponseField>
+
+<ResponseField name="title" type="String?">
+  The display title of the tournament as set during creation.
+</ResponseField>
+
+<ResponseField name="payload" type="String?">
+  Custom data attached to the tournament during creation. Available to all game sessions launched from tournament updates.
+</ResponseField>
+
+---
+
+## `TournamentConfig` struct
+
+`TournamentConfig` is used when creating a new tournament via `ShareTournamentDialog`. It describes the configuration of the tournament before it is created on the server.
+
+### Initializer
+
+```swift
+public init(
+    title: String? = nil,
+    endTime: Date? = nil,
+    scoreType: TournamentScoreType? = nil,
+    sortOrder: TournamentSortOrder? = nil,
+    image: UIImage? = nil,
+    payload: String? = nil
+)
+```
+
+<ParamField path="title" type="String?">
+  Display title for the tournament.
+</ParamField>
+
+<ParamField path="endTime" type="Date?">
+  The end date of the tournament. Defaults to one week after creation if not specified.
+</ParamField>
+
+<ParamField path="scoreType" type="TournamentScoreType?">
+  How scores are formatted in the leaderboard. Defaults to `TournamentScoreType.numeric`.
+</ParamField>
+
+<ParamField path="sortOrder" type="TournamentSortOrder?">
+  Whether higher or lower scores rank better. Defaults to `TournamentSortOrder.descending`.
+</ParamField>
+
+<ParamField path="image" type="UIImage?">
+  An image to associate with the tournament and include in any posts.
+</ParamField>
+
+<ParamField path="payload" type="String?">
+  Optional custom data string attached to the tournament. Must be 1000 characters or fewer when stringified.
+</ParamField>
+
+### Properties
+
+<ResponseField name="title" type="String?">
+  Display title of the tournament.
+</ResponseField>
+
+<ResponseField name="endTime" type="TimeInterval?">
+  Stored internally as `TimeInterval` (Unix timestamp). Converted from `Date` at initialization.
+</ResponseField>
+
+<ResponseField name="scoreType" type="TournamentScoreType?">
+  Score formatting preference.
+</ResponseField>
+
+<ResponseField name="sortOrder" type="TournamentSortOrder?">
+  Score ranking order.
+</ResponseField>
+
+<ResponseField name="image" type="UIImage?">
+  Image associated with the tournament.
+</ResponseField>
+
+<ResponseField name="payload" type="String?">
+  Custom data string.
+</ResponseField>
+
+---
+
+## `TournamentUpdater`
+
+`TournamentUpdater` posts a score update to a specific tournament.
+
+### Initializer
+
+```swift
+public convenience init()
+```
+
+### Methods
+
+#### `update(tournamentID:score:completionHandler:)`
+
+Updates the current user's score in the specified tournament by ID.
+
+```swift
+public func update(
+    tournamentID: String,
+    score: Int,
+    completionHandler: @escaping (Result<Bool, TournamentUpdaterError>) -> Void
+)
+```
+
+<ParamField path="tournamentID" type="String">
+  The ID of the tournament to update. Must not be empty.
+</ParamField>
+
+<ParamField path="score" type="Int">
+  The new score to record for the current user in this tournament.
+</ParamField>
+
+<ParamField path="completionHandler" type="(Result&lt;Bool, TournamentUpdaterError&gt;) -> Void">
+  A closure called on completion. On success, receives `true`. On failure, receives a `TournamentUpdaterError`.
+</ParamField>
+
+#### `update(tournament:score:completionHandler:)`
+
+Updates the current user's score using a `Tournament` object.
+
+```swift
+public func update(
+    tournament: Tournament,
+    score: Int,
+    completionHandler: @escaping (Result<Bool, TournamentUpdaterError>) -> Void
+)
+```
+
+<ParamField path="tournament" type="Tournament">
+  The tournament to update.
+</ParamField>
+
+<ParamField path="score" type="Int">
+  The new score.
+</ParamField>
+
+<ParamField path="completionHandler" type="(Result&lt;Bool, TournamentUpdaterError&gt;) -> Void">
+  A closure called on completion.
+</ParamField>
+
+### `TournamentUpdaterError` enum
+
+| Case | Description |
+|------|-------------|
+| `.server(Error)` | The Graph API returned an error. |
+| `.decoding` | The server response could not be decoded. |
+| `.invalidAuthToken` | `AuthenticationToken.current` is `nil` or not in the `gaming` domain. |
+| `.invalidAccessToken` | `AccessToken.current` is `nil`. |
+| `.invalidTournamentID` | The provided `tournamentID` is an empty string. |
+
+---
+
+## Usage example
+
+```swift
+import FBSDKGamingServicesKit
+
+// Fetch tournaments
+let fetcher = TournamentFetcher()
+fetcher.fetchTournaments { result in
+    switch result {
+    case let .success(tournaments):
+        for tournament in tournaments {
+            print("Tournament:", tournament.title ?? "Untitled")
+            print("Ends:", tournament.endTime ?? Date.distantFuture)
+        }
+    case let .failure(error):
+        print("Fetch failed:", error)
+    }
+}
+
+// Update a score
+let updater = TournamentUpdater()
+updater.update(tournamentID: "12345678", score: 9500) { result in
+    switch result {
+    case .success:
+        print("Score updated")
+    case let .failure(error):
+        print("Update failed:", error)
+    }
+}
+```
+
+---
+
+## Related pages
+
+- [GamingContext](/api-reference/gaming/gaming-context)
+- [GameRequestDialog](/api-reference/gaming/game-request-dialog)

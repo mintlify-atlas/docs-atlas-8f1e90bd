@@ -1,0 +1,113 @@
+---
+title: "Share link content"
+description: "Build and share a link to Facebook using ShareLinkContent, with optional quote text and a hashtag."
+---
+
+`ShareLinkContent` represents a URL you want to share to Facebook. You can attach a user-provided quote and a hashtag to the post.
+
+## Properties
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `contentURL` | `URL?` | The URL to share. The SDK checks it for App Links metadata. |
+| `quote` | `String?` | A quote displayed with custom styling on top of the link preview. Must come from the user — pre-filled quotes are against Facebook Platform Policy. |
+| `hashtag` | `Hashtag?` | A single hashtag attached to the share. |
+| `peopleIDs` | `[String]` | IDs of friends to tag in the post (requires Taggable Friends permission). |
+| `placeID` | `String?` | The ID of a place to tag. |
+| `ref` | `String?` | A string appended to the referrer URL when someone follows the link from feed. |
+| `pageID` | `String?` | Maps the app to a page for Messenger attribution. |
+| `shareUUID` | `String?` | A read-only unique identifier generated automatically for tracking purposes. |
+
+## Sharing a link
+
+<Steps>
+  <Step title="Create the content object">
+    Instantiate `ShareLinkContent` and set `contentURL` to the URL you want to share.
+
+    ```swift
+    import FacebookShare
+
+    let content = ShareLinkContent()
+    content.contentURL = URL(string: "https://example.com/article")
+    ```
+  </Step>
+  <Step title="Add a quote (optional)">
+    The quote renders with highlighted styling above the link preview. It must originate from the user — do not pre-fill it.
+
+    ```swift
+    content.quote = userEnteredQuote
+    ```
+  </Step>
+  <Step title="Add a hashtag (optional)">
+    Create a `Hashtag` and assign it. The string must start with `#` followed by one or more word characters.
+
+    ```swift
+    content.hashtag = Hashtag("#SwiftDev")
+    ```
+  </Step>
+  <Step title="Present the dialog">
+    Pass the content to `ShareDialog`.
+
+    ```swift
+    ShareDialog.show(viewController: self, content: content, delegate: self)
+    ```
+  </Step>
+</Steps>
+
+## The `Hashtag` type
+
+`Hashtag` is a simple wrapper around a string. You initialise it with the `#` character included:
+
+```swift
+let hashtag = Hashtag("#iOSDev")
+print(hashtag.isValid)            // true
+print(hashtag.stringRepresentation) // "#iOSDev"
+```
+
+A hashtag is valid when its `stringRepresentation` matches `^#\w+$` — a single `#` followed by one or more word characters. Invalid hashtags are silently dropped during sharing.
+
+```swift
+let bad = Hashtag("no hash sign")
+print(bad.isValid) // false
+```
+
+## Complete example
+
+```swift
+import FacebookShare
+import UIKit
+
+class ArticleViewController: UIViewController {
+
+    func shareArticle(url: URL, userQuote: String?) {
+        let content = ShareLinkContent()
+        content.contentURL = url
+        content.hashtag = Hashtag("#ReadMore")
+
+        if let quote = userQuote {
+            content.quote = quote
+        }
+
+        ShareDialog.show(viewController: self, content: content, delegate: self)
+    }
+}
+
+extension ArticleViewController: SharingDelegate {
+
+    func sharer(_ sharer: Sharing, didCompleteWithResults results: [String: Any]) {
+        print("Shared successfully")
+    }
+
+    func sharer(_ sharer: Sharing, didFailWithError error: Error) {
+        print("Share error:", error.localizedDescription)
+    }
+
+    func sharerDidCancel(_ sharer: Sharing) {
+        print("Share cancelled")
+    }
+}
+```
+
+<Note>
+`contentURL` must be a network URL (not a file URL). The SDK validates this and throws if the URL is a local file path.
+</Note>

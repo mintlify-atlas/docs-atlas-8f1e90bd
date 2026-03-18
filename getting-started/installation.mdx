@@ -1,0 +1,156 @@
+---
+title: "Installation"
+description: "Add the Facebook SDK for iOS to your project using Swift Package Manager, CocoaPods, or Carthage."
+---
+
+The SDK supports three package managers. Choose the one that matches your project's tooling. You only need to add the modules your app uses — you don't have to include the entire SDK.
+
+<Note>
+  All modules require **FacebookCore** (or **FBSDKCoreKit** in CocoaPods/Carthage) as a transitive dependency. You don't need to add it explicitly when installing other modules.
+</Note>
+
+<Tabs>
+  <Tab title="Swift Package Manager">
+    Swift Package Manager is the recommended approach for new projects.
+
+    <Steps>
+      <Step title="Open the package dependency dialog">
+        In Xcode, choose **File → Add Package Dependencies**.
+      </Step>
+
+      <Step title="Enter the repository URL">
+        Paste the following URL into the search field:
+
+        ```
+        https://github.com/facebook/facebook-ios-sdk
+        ```
+
+        Select the repository from the results and choose a version rule. Use **Up to Next Major Version** starting from `18.0.3` to receive non-breaking updates automatically.
+      </Step>
+
+      <Step title="Select the modules you need">
+        Xcode will list the available package products. Add only the ones your app requires:
+
+        | Product | Use when you need |
+        |---|---|
+        | `FacebookCore` | App events, Graph API, access tokens |
+        | `FacebookLogin` | Facebook Login |
+        | `FacebookShare` | Share and message dialogs |
+        | `FacebookGamingServices` | Gaming integrations |
+        | `FacebookAEM` | Aggregated Event Measurement |
+
+        Click **Add Package**.
+      </Step>
+
+      <Step title="Import in your source files">
+        Import the modules you added at the top of each Swift file that uses them:
+
+        ```swift
+        import FacebookCore
+        import FacebookLogin
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="CocoaPods">
+    <Steps>
+      <Step title="Install CocoaPods">
+        If you don't have CocoaPods installed, run:
+
+        ```bash
+        sudo gem install cocoapods
+        ```
+      </Step>
+
+      <Step title="Add pods to your Podfile">
+        Open your `Podfile` and add the pods for the modules you need:
+
+        ```ruby
+        platform :ios, '12.0'
+        use_frameworks!
+
+        target 'YourApp' do
+          # Required for all SDK features
+          pod 'FBSDKCoreKit'
+
+          # Add only the pods you need
+          pod 'FBSDKLoginKit'
+          pod 'FBSDKShareKit'
+          pod 'FBSDKGamingServicesKit'
+        end
+        ```
+
+        | Pod | Module |
+        |---|---|
+        | `FBSDKCoreKit` | FacebookCore |
+        | `FBSDKLoginKit` | FacebookLogin |
+        | `FBSDKShareKit` | FacebookShare |
+        | `FBSDKGamingServicesKit` | FacebookGamingServices |
+      </Step>
+
+      <Step title="Install dependencies">
+        Run the following command from your project directory:
+
+        ```bash
+        pod install
+        ```
+
+        Open the generated `.xcworkspace` file from now on instead of `.xcodeproj`.
+      </Step>
+
+      <Step title="Import in your source files">
+        ```swift
+        import FBSDKCoreKit
+        import FBSDKLoginKit
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Carthage">
+    <Steps>
+      <Step title="Install Carthage">
+        If you don't have Carthage installed:
+
+        ```bash
+        brew install carthage
+        ```
+      </Step>
+
+      <Step title="Add the dependency to your Cartfile">
+        Create or open your `Cartfile` and add:
+
+        ```
+        github "facebook/facebook-ios-sdk"
+        ```
+
+        To pin to a specific version:
+
+        ```
+        github "facebook/facebook-ios-sdk" ~> 18.0
+        ```
+      </Step>
+
+      <Step title="Build the frameworks">
+        Run the following from your project directory:
+
+        ```bash
+        carthage update --use-xcframeworks --platform iOS
+        ```
+
+        Carthage places the built XCFrameworks in `Carthage/Build/`.
+      </Step>
+
+      <Step title="Link the frameworks">
+        In Xcode, go to your target's **General** tab and drag the XCFrameworks you need from `Carthage/Build/` into the **Frameworks, Libraries, and Embedded Content** section.
+
+        Add only the frameworks your app uses.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Next steps
+
+Once the SDK is installed, follow the [Quickstart](/getting-started/quickstart) to configure your app ID and initialize the SDK.

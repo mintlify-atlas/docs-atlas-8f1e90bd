@@ -1,0 +1,159 @@
+---
+title: "Context dialogs"
+description: "Use ChooseContextDialog, CreateContextDialog, and SwitchContextDialog to manage Instant Games contexts on iOS."
+---
+
+A gaming context represents a specific game session — either a solo session or a multiplayer session shared with other players. Contexts power social features like inviting friends to play, tracking turn-based games, and connecting leaderboards to a specific group of players.
+
+The active context is accessible at any time through `GamingContext.current`.
+
+```swift
+import FacebookGamingServices
+
+if let context = GamingContext.current {
+    print(context.identifier) // unique ID for this game instance
+    print(context.size)       // number of players in this session
+}
+```
+
+## ChooseContextDialog
+
+`ChooseContextDialog` lets the user pick a context from their existing friend connections. The dialog opens via an app switch to the Facebook app.
+
+### Configure the content
+
+Use `ChooseContextContent` to describe which contexts appear in the selector.
+
+```swift
+let content = ChooseContextContent()
+content.filter = .newPlayersOnly   // only show contexts with players not already in a session
+content.minParticipants = 2
+content.maxParticipants = 8
+```
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `filter` | `ChooseContextFilter` | `.none` | Filters the contexts shown in the dialog. |
+| `minParticipants` | `Int` | `0` | Minimum number of participants in suggested contexts. |
+| `maxParticipants` | `Int` | `0` | Maximum number of participants in suggested contexts. Set to `0` to apply no upper bound. |
+
+**Filter options**
+
+| Value | Description |
+|---|---|
+| `.none` | Show all contexts. |
+| `.existingChallenges` | Show only contexts with existing challenges. |
+| `.newPlayersOnly` | Show only contexts with players not yet in a session. |
+| `.newContextOnly` | Show only brand-new contexts. |
+
+### Present the dialog
+
+Create a `ChooseContextDialog` with your content and a delegate, then call `show()`.
+
+```swift
+class GameViewController: UIViewController, ContextDialogDelegate {
+
+    func showChooseContext() {
+        let content = ChooseContextContent()
+        content.filter = .newPlayersOnly
+
+        let dialog = ChooseContextDialog(content: content, delegate: self)
+        dialog.show()
+    }
+
+    // MARK: - ContextDialogDelegate
+
+    func contextDialogDidComplete(_ contextDialog: ContextWebDialog) {
+        guard let context = GamingContext.current else { return }
+        print("New context: \(context.identifier), players: \(context.size)")
+    }
+
+    func contextDialog(_ contextDialog: ContextWebDialog, didFailWithError error: Error) {
+        print("Context dialog failed: \(error)")
+    }
+
+    func contextDialogDidCancel(_ contextDialog: ContextWebDialog) {
+        print("User cancelled context selection")
+    }
+}
+```
+
+### Handling the result
+
+Implement `ContextDialogDelegate` to respond to the outcome:
+
+| Method | When called |
+|---|---|
+| `contextDialogDidComplete(_:)` | The user selected a context. `GamingContext.current` is updated. |
+| `contextDialog(_:didFailWithError:)` | An error occurred. |
+| `contextDialogDidCancel(_:)` | The user dismissed the dialog without selecting. |
+
+## CreateContextDialog
+
+`CreateContextDialog` starts a new context between the current user and a specific player. It presents a web view overlay in your app.
+
+```swift
+class GameViewController: UIViewController, ContextDialogDelegate {
+
+    func createContext(withPlayerID playerID: String) {
+        let content = CreateContextContent(playerID: playerID)
+
+        let dialog = CreateContextDialog(
+            content: content,
+            windowFinder: InternalUtility.shared,
+            delegate: self
+        )
+        dialog.show()
+    }
+
+    // MARK: - ContextDialogDelegate
+
+    func contextDialogDidComplete(_ contextDialog: ContextWebDialog) {
+        print("Context created: \(GamingContext.current?.identifier ?? "")")
+    }
+
+    func contextDialog(_ contextDialog: ContextWebDialog, didFailWithError error: Error) {
+        print("Failed to create context: \(error)")
+    }
+
+    func contextDialogDidCancel(_ contextDialog: ContextWebDialog) {}
+}
+```
+
+`CreateContextContent` requires a `playerID` — the Facebook user ID of the player you want to challenge. An empty `playerID` causes validation to fail.
+
+## SwitchContextDialog
+
+`SwitchContextDialog` moves the user into an existing context identified by its context token ID. Like `CreateContextDialog`, it renders as a web view overlay.
+
+```swift
+class GameViewController: UIViewController, ContextDialogDelegate {
+
+    func switchContext(toContextID contextID: String) {
+        let content = SwitchContextContent(contextID: contextID)
+
+        let dialog = SwitchContextDialog(
+            content: content,
+            windowFinder: InternalUtility.shared,
+            delegate: self
+        )
+        dialog.show()
+    }
+
+    // MARK: - ContextDialogDelegate
+
+    func contextDialogDidComplete(_ contextDialog: ContextWebDialog) {
+        print("Switched to context: \(GamingContext.current?.identifier ?? "")")
+    }
+
+    func contextDialog(_ contextDialog: ContextWebDialog, didFailWithError error: Error) {
+        print("Switch failed: \(error)")
+    }
+
+    func contextDialogDidCancel(_ contextDialog: ContextWebDialog) {}
+}
+```
+
+<Note>
+  `SwitchContextContent` takes a context token ID (the `identifier` of an existing `GamingContext`), not a player ID.
+</Note>

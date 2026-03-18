@@ -1,0 +1,209 @@
+---
+title: "LoginManager"
+description: "Provides methods for logging the user in and out of your app using Facebook Login."
+---
+
+## Overview
+
+`LoginManager` is the primary entry point for Facebook Login in your iOS app. It works directly with `AccessToken` (for data access) and `AuthenticationToken` (for authentication), and sets the current tokens upon successful authorizations—or sets them to `nil` when the user logs out.
+
+Before calling a login method, you should check `AccessToken.current` to see whether a cached token is already available.
+
+```swift
+import FBSDKLoginKit
+
+let loginManager = LoginManager()
+```
+
+**Module:** `FBSDKLoginKit`  
+**Declared in:** `LoginManager.swift`  
+**Objective-C name:** `FBSDKLoginManager`
+
+---
+
+## Initializers
+
+### `init(defaultAudience:)`
+
+Creates a new `LoginManager` instance.
+
+```swift
+public convenience init(defaultAudience: DefaultAudience = .friends)
+```
+
+<ParamField path="defaultAudience" type="DefaultAudience" default=".friends">
+  The default audience to use when the user grants publish permissions. See [`DefaultAudience`](#defaultaudience-enum) for available values.
+</ParamField>
+
+---
+
+## Properties
+
+<ResponseField name="defaultAudience" type="DefaultAudience">
+  Controls which audience can see content posted by your app on the user's behalf. Set this before calling a login method if you need publish permissions. Defaults to `.friends`.
+</ResponseField>
+
+---
+
+## Methods
+
+### `logIn(viewController:configuration:completion:)`
+
+Logs the user in or requests additional permissions. This is the primary Swift login method.
+
+```swift
+public func logIn(
+    viewController: UIViewController? = nil,
+    configuration: LoginConfiguration?,
+    completion: @escaping LoginResultBlock
+)
+```
+
+<ParamField path="viewController" type="UIViewController?" default="nil">
+  The view controller from which to present the login UI. If `nil`, the topmost view controller is determined automatically.
+</ParamField>
+
+<ParamField path="configuration" type="LoginConfiguration?">
+  The login configuration describing the permissions and tracking preferences for this login attempt. Must not be `nil`.
+</ParamField>
+
+<ParamField path="completion" type="LoginResultBlock">
+  A closure called with a `LoginResult` value when the login attempt finishes.
+</ParamField>
+
+The `completion` receives a `LoginResult` enum value:
+
+```swift
+switch result {
+case let .success(granted, declined, token):
+    print("Granted:", granted)
+case .cancelled:
+    print("User cancelled")
+case let .failed(error):
+    print("Error:", error)
+}
+```
+
+---
+
+### `logIn(permissions:from:handler:)`
+
+Logs the user in using an array of permission strings. This method is available for both Swift and Objective-C callers.
+
+```swift
+@objc(logInWithPermissions:fromViewController:handler:)
+public func logIn(
+    permissions: [String],
+    from viewController: UIViewController?,
+    handler: LoginManagerLoginResultBlock?
+)
+```
+
+<ParamField path="permissions" type="[String]">
+  An array of permission name strings to request, e.g. `["public_profile", "email"]`.
+</ParamField>
+
+<ParamField path="viewController" type="UIViewController?">
+  The view controller from which to present the login UI. Pass `nil` to use the topmost view controller.
+</ParamField>
+
+<ParamField path="handler" type="LoginManagerLoginResultBlock?">
+  A callback invoked with a `LoginManagerLoginResult?` and an optional `Error`.
+</ParamField>
+
+---
+
+### `logOut()`
+
+Logs the user out by setting `AccessToken.current`, `AuthenticationToken.current`, and `Profile.current` to `nil`.
+
+```swift
+public func logOut()
+```
+
+<Warning>
+  This is a client-side logout only. It does not revoke the token on Facebook's servers or log the user out of the Facebook app.
+</Warning>
+
+---
+
+### `reauthorizeDataAccess(from:handler:)`
+
+Requests the user's permission to reauthorize your app's data access after it has expired due to inactivity.
+
+```swift
+@objc(reauthorizeDataAccess:handler:)
+public func reauthorizeDataAccess(
+    from viewController: UIViewController?,
+    handler: @escaping LoginManagerLoginResultBlock
+)
+```
+
+<ParamField path="viewController" type="UIViewController?">
+  The view controller from which to present the reauthorization UI.
+</ParamField>
+
+<ParamField path="handler" type="LoginManagerLoginResultBlock">
+  A callback invoked when the reauthorization attempt completes.
+</ParamField>
+
+Call this method when `AccessToken.isDataAccessExpired` returns `true`. You must have a current `AccessToken` before calling this method.
+
+---
+
+## `DefaultAudience` enum
+
+| Case | Description |
+|------|-------------|
+| `.friends` | Only the user's Facebook friends can see posts made by the app (default). |
+| `.onlyMe` | Only the user themselves can see posts made by the app. |
+| `.everyone` | All Facebook users can see posts made by the app. |
+
+---
+
+## `URLOpening` conformance
+
+`LoginManager` conforms to the `URLOpening` protocol so it can handle redirect URLs from Facebook's OAuth flow. You typically do not need to call these methods directly; instead, register `LoginManager` in your app's `UIApplicationDelegate`.
+
+---
+
+## Usage example
+
+```swift
+import FBSDKLoginKit
+
+class LoginViewController: UIViewController {
+
+    let loginManager = LoginManager()
+
+    func login() {
+        guard let config = LoginConfiguration(
+            permissions: ["public_profile", "email"],
+            tracking: .enabled
+        ) else { return }
+
+        loginManager.logIn(viewController: self, configuration: config) { result in
+            switch result {
+            case let .success(granted, declined, token):
+                print("Logged in. Token:", token?.tokenString ?? "none")
+            case .cancelled:
+                print("Login cancelled")
+            case let .failed(error):
+                print("Login failed:", error)
+            }
+        }
+    }
+
+    func logout() {
+        loginManager.logOut()
+    }
+}
+```
+
+---
+
+## Related pages
+
+- [LoginConfiguration](/api-reference/login/login-configuration)
+- [LoginResult](/api-reference/login/login-result)
+- [DeviceLoginManager](/api-reference/login/device-login-manager)

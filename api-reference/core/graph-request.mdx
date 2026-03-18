@@ -1,0 +1,287 @@
+---
+title: "GraphRequest"
+description: "Make calls to the Facebook Graph API using GraphRequest. Batch multiple requests with GraphRequestConnection for greater efficiency."
+---
+
+## Overview
+
+`GraphRequest` represents a single request to the Facebook Graph API. You construct a request with a graph path and optional parameters, then call `start(completion:)` to execute it. Under the hood this creates a `GraphRequestConnection`, adds the request to it, and starts the network operation.
+
+For more control — or to batch multiple requests into a single HTTP call — create a `GraphRequestConnection` directly, add your requests with `add(_:completion:)`, and call `start()`.
+
+| | |
+|---|---|
+| **Module** | `FacebookCore` |
+| **Objective-C name** | `FBSDKGraphRequest` |
+| **Availability** | iOS 12+ |
+
+---
+
+## HTTP methods
+
+The SDK defines three HTTP method constants:
+
+| Constant | Value | Use |
+|----------|-------|-----|
+| `FBSDKHTTPMethodGET` | `"GET"` | Read data (default). |
+| `FBSDKHTTPMethodPOST` | `"POST"` | Create or update data. |
+| `FBSDKHTTPMethodDELETE` | `"DELETE"` | Delete data. |
+
+---
+
+## Initializers
+
+### `init(graphPath:parameters:)`
+
+Creates a GET request with the given graph path and parameters. The SDK automatically attaches the current access token.
+
+```swift
+public init(
+    graphPath: String,
+    parameters: [String: Any]
+)
+```
+
+<ParamField path="body.graphPath" type="String" required>
+  The Graph API path, for example `"me"`, `"me/friends"`, or `"\(userID)/photos"`.
+</ParamField>
+
+<ParamField path="body.parameters" type="[String: Any]" required>
+  A dictionary of query parameters. For GET requests, include a `"fields"` key to specify the fields you want returned — for example `["fields": "id,name,email"]`.
+</ParamField>
+
+---
+
+### `init(graphPath:parameters:httpMethod:)`
+
+Creates a request with an explicit HTTP method.
+
+```swift
+public init(
+    graphPath: String,
+    parameters: [String: Any],
+    httpMethod: String
+)
+```
+
+<ParamField path="body.graphPath" type="String" required>
+  The Graph API path.
+</ParamField>
+
+<ParamField path="body.parameters" type="[String: Any]" required>
+  A dictionary of parameters. Pass an empty dictionary `[:]` for POST and DELETE requests that have no additional parameters.
+</ParamField>
+
+<ParamField path="body.httpMethod" type="String" required>
+  The HTTP method: `"GET"`, `"POST"`, or `"DELETE"`.
+</ParamField>
+
+---
+
+### `init(graphPath:parameters:tokenString:version:httpMethod:)`
+
+Creates a request with explicit control over the token, Graph API version, and HTTP method. Use this initializer when you need to make a call on behalf of a specific token or target a specific API version.
+
+```swift
+public init(
+    graphPath: String,
+    parameters: [String: Any]?,
+    tokenString: String?,
+    version: String?,
+    httpMethod: String
+)
+```
+
+<ParamField path="body.graphPath" type="String" required>
+  The Graph API path.
+</ParamField>
+
+<ParamField path="body.parameters" type="[String: Any]?">
+  A dictionary of parameters, or `nil`.
+</ParamField>
+
+<ParamField path="body.tokenString" type="String?">
+  An explicit access token string. Pass `nil` to use the current access token automatically.
+</ParamField>
+
+<ParamField path="body.version" type="String?">
+  The Graph API version string, for example `"v21.0"`. Pass `nil` to use the version from `Settings.shared.graphAPIVersion`.
+</ParamField>
+
+<ParamField path="body.httpMethod" type="String" required>
+  The HTTP method: `"GET"`, `"POST"`, or `"DELETE"`.
+</ParamField>
+
+---
+
+## Instance methods
+
+### `start(completion:)`
+
+Starts the Graph API request and calls the completion handler when a response is received. This method creates an internal `GraphRequestConnection`, adds the request, and starts it immediately.
+
+```swift
+@discardableResult
+public func start(
+    completion: GraphRequestCompletion?
+) -> GraphRequestConnecting
+```
+
+<ParamField path="body.completion" type="GraphRequestCompletion?">
+  A closure called when the request completes. The closure receives three arguments:
+
+  - `connection: GraphRequestConnecting?` — the connection that made the request.
+  - `result: Any?` — the parsed JSON response body on success, or `nil` on error.
+  - `error: Error?` — the error on failure, or `nil` on success.
+</ParamField>
+
+Returns the `GraphRequestConnecting` instance used to make the request. You can retain this value to cancel the request before it completes.
+
+---
+
+## GraphRequestConnection
+
+Use `GraphRequestConnection` when you want to batch multiple Graph API requests into a single network round trip, or when you need finer-grained control over the connection lifecycle.
+
+### `add(_:completion:)`
+
+Adds a request to the connection. You must call this before calling `start()`. Throws an exception if the connection has already been started.
+
+```swift
+public func add(
+    _ request: GraphRequestProtocol,
+    completion: GraphRequestCompletion?
+)
+```
+
+<ParamField path="body.request" type="GraphRequestProtocol" required>
+  The request to add to the batch.
+</ParamField>
+
+<ParamField path="body.completion" type="GraphRequestCompletion?">
+  A per-request completion handler called with that request's result and error when the batch completes.
+</ParamField>
+
+---
+
+### `start()`
+
+Starts executing all requests added to this connection. Each request's completion handler is called individually as results arrive.
+
+```swift
+public func start()
+```
+
+<Warning>
+  You can only call `start()` once per `GraphRequestConnection` instance. To make another request, create a new connection.
+</Warning>
+
+---
+
+### `cancel()`
+
+Cancels the connection and any pending network activity. Any completion handlers that have not yet been called will not be called after cancellation.
+
+```swift
+public func cancel()
+```
+
+---
+
+## Error handling
+
+When a Graph API request fails, the `error` parameter in the completion handler is non-nil. Inspect the error's `userInfo` dictionary for details:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `FBSDKGraphRequestErrorKey` | `FBSDKGraphRequestError` | The error category: `.other`, `.transient`, or `.recoverable`. |
+| `FBSDKGraphRequestErrorGraphErrorCodeKey` | `Int` | The Graph API error code (e.g., `190` for invalid token). |
+| `FBSDKGraphRequestErrorGraphErrorSubcodeKey` | `Int` | The Graph API error subcode. |
+| `FBSDKGraphRequestErrorHTTPStatusCodeKey` | `Int` | The HTTP status code. |
+| `FBSDKGraphRequestErrorParsedJSONResponseKey` | `[String: Any]` | The full parsed JSON response body. |
+
+When `FBSDKGraphRequestError` is `.transient`, the request failed due to a temporary condition (e.g., network timeout) and you can retry it. When it is `.recoverable`, the SDK may attempt automatic error recovery if `Settings.shared.isGraphErrorRecoveryEnabled` is `true`.
+
+---
+
+## Usage example
+
+### Simple `/me` request
+
+```swift
+import FacebookCore
+
+func fetchUserProfile() {
+    let request = GraphRequest(
+        graphPath: "me",
+        parameters: ["fields": "id,name,email"]
+    )
+
+    request.start { _, result, error in
+        if let error = error {
+            print("Graph request failed:", error)
+            return
+        }
+
+        guard let result = result as? [String: Any] else { return }
+
+        let id = result["id"] as? String ?? ""
+        let name = result["name"] as? String ?? ""
+        let email = result["email"] as? String ?? "(not granted)"
+
+        print("ID:", id)
+        print("Name:", name)
+        print("Email:", email)
+    }
+}
+```
+
+### Batching multiple requests
+
+```swift
+import FacebookCore
+
+func fetchBatch() {
+    let connection = GraphRequestConnection()
+
+    let meRequest = GraphRequest(
+        graphPath: "me",
+        parameters: ["fields": "id,name"]
+    )
+    connection.add(meRequest) { _, result, error in
+        if let data = result as? [String: Any] {
+            print("Me:", data)
+        }
+    }
+
+    let friendsRequest = GraphRequest(
+        graphPath: "me/friends",
+        parameters: ["fields": "id,name"]
+    )
+    connection.add(friendsRequest) { _, result, error in
+        if let data = result as? [String: Any] {
+            print("Friends:", data)
+        }
+    }
+
+    connection.start()
+}
+```
+
+### Deleting an object
+
+```swift
+let request = GraphRequest(
+    graphPath: postID,
+    parameters: [:],
+    httpMethod: "DELETE"
+)
+
+request.start { _, result, error in
+    if let error = error {
+        print("Delete failed:", error)
+    } else {
+        print("Post deleted successfully")
+    }
+}
+```

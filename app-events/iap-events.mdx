@@ -1,0 +1,86 @@
+---
+title: "In-App Purchase events"
+description: "Automatically track in-app purchases using StoreKit integration."
+---
+
+The Facebook SDK integrates with StoreKit to automatically detect and log in-app purchase events. No extra code is required once the SDK is initialised.
+
+## What is automatically tracked
+
+The SDK's payment observer (`FBSDKPaymentObserver`) monitors the StoreKit transaction queue and logs events when purchases complete:
+
+| Scenario | Event logged |
+|---|---|
+| Successful purchase (consumable or non-consumable) | `fb_mobile_purchase` |
+| Failed purchase | `fb_mobile_purchase_failed` |
+| Restored purchase | `fb_mobile_purchase_restored` |
+| Subscription initiated checkout | `SubscriptionInitiatedCheckout` |
+| Subscription failed | `SubscriptionFailed` |
+| Subscription restored | `SubscriptionRestore` |
+
+Each purchase event includes parameters such as:
+
+| Parameter | Raw key |
+|---|---|
+| Product type | `fb_iap_product_type` |
+| Transaction ID | `fb_transaction_id` |
+| Transaction date | `fb_transaction_date` |
+| Subscription period | `fb_iap_subs_period` |
+| Whether it is a start trial | `fb_iap_is_start_trial` |
+| Whether it has a free trial | `fb_iap_has_free_trial` |
+| Trial period | `fb_iap_trial_period` |
+| Trial price | `fb_iap_trial_price` |
+| Currency | `fb_currency` |
+
+## StoreKit Original API
+
+Automatic tracking uses `SKPaymentQueue` to observe completed, failed, and restored transactions. It activates when `FacebookAutoLogAppEventsEnabled` is `true` (the default) in your `Info.plist`.
+
+## StoreKit 2
+
+On iOS 15 and later, the SDK also listens for new transactions via the async `Transaction.updates` sequence, which covers StoreKit 2 purchases. This happens automatically when the app becomes active.
+
+```swift
+// The SDK calls this internally — you do not need to add this yourself:
+// Task { await IAPTransactionObserver.shared.observeNewTransactions() }
+```
+
+<Note>
+StoreKit 2 automatic tracking requires iOS 15.0 or later. On earlier OS versions the SDK falls back to the Original API observer.
+</Note>
+
+## Disabling automatic IAP tracking
+
+To opt out of automatic purchase tracking, set `FacebookAutoLogAppEventsEnabled` to `false` in your `Info.plist`:
+
+```xml
+<key>FacebookAutoLogAppEventsEnabled</key>
+<false/>
+```
+
+When auto-logging is off, you must log purchases manually if you still want purchase data in Events Manager.
+
+## Manual purchase logging
+
+If you have disabled auto-logging or need to supplement automatic events, use the `logPurchase` method:
+
+```swift
+import FBSDKCoreKit
+
+// After a successful StoreKit transaction:
+AppEvents.shared.logPurchase(
+    purchaseAmount: Double(truncating: product.price),
+    currency: product.priceLocale.currencyCode ?? "USD",
+    parameters: [
+        .init(FBSDKAppEventParameterNameTransactionID): transaction.transactionIdentifier ?? ""
+    ]
+)
+```
+
+## App Store data disclosure
+
+<Warning>
+Apple requires that you disclose the data types your app collects in its App Store privacy nutrition label. When using automatic IAP tracking, you must declare **Purchase History** as a data type collected for third-party advertising purposes.
+</Warning>
+
+Review the [App Store data collection requirements](https://developer.apple.com/app-store/app-privacy-details/) and update your app's privacy nutrition label accordingly before submitting.

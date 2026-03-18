@@ -1,0 +1,114 @@
+---
+title: "Share dialog"
+description: "Present a Facebook share dialog from any view controller using ShareDialog."
+---
+
+`ShareDialog` is the main entry point for sharing content on Facebook. It wraps the content you want to share, chooses the best presentation mode available, and notifies your code of the outcome through a delegate.
+
+## Creating and presenting a dialog
+
+The simplest way to share is the one-line class method `show(viewController:content:delegate:)`. It creates a dialog, calls `show()` on it, and returns the dialog instance.
+
+```swift
+import FacebookShare
+
+let content = ShareLinkContent()
+content.contentURL = URL(string: "https://example.com/article")
+
+ShareDialog.show(viewController: self, content: content, delegate: self)
+```
+
+If you need to configure the dialog before presenting it, use the initializer instead:
+
+```swift
+let dialog = ShareDialog(
+    viewController: self,
+    content: content,
+    delegate: self
+)
+dialog.mode = .native
+dialog.show()
+```
+
+<Note>
+If you do not supply a `viewController`, the SDK attempts to find the topmost view controller automatically. Supplying one explicitly is recommended.
+</Note>
+
+## Dialog modes
+
+Set `dialog.mode` to control how the dialog is presented. The default is `.automatic`.
+
+| Mode | Description |
+| --- | --- |
+| `.automatic` | Chooses the best available mode at runtime. Start here. |
+| `.native` | Opens the share sheet inside the Facebook app. The Facebook app must be installed. |
+| `.shareSheet` | Uses the iOS integrated share sheet. The Facebook app must be installed. |
+| `.browser` | Opens the share dialog in Safari. |
+| `.web` | Opens the dialog in a `WKWebView` inside your app. Deprecated — prefer `.automatic`. |
+| `.feedBrowser` | Opens the feed dialog in Safari. Deprecated — prefer `.browser`. |
+| `.feedWeb` | Opens the feed dialog in a `WKWebView`. Deprecated — prefer `.automatic`. |
+
+<Warning>
+`.web`, `.feedBrowser`, and `.feedWeb` are deprecated. Use `.automatic` or `.browser` unless you have a specific reason to use them.
+</Warning>
+
+## Checking availability before sharing
+
+Before calling `show()`, you can check whether the dialog can be presented with the `canShow` property. This is useful when you want to hide or disable a share button conditionally.
+
+```swift
+let dialog = ShareDialog(viewController: self, content: content, delegate: self)
+if dialog.canShow {
+    dialog.show()
+}
+```
+
+## Implementing `SharingDelegate`
+
+Conform to `SharingDelegate` to receive callbacks when sharing completes, fails, or is cancelled by the user.
+
+```swift
+extension MyViewController: SharingDelegate {
+
+    func sharer(_ sharer: Sharing, didCompleteWithResults results: [String: Any]) {
+        // The user completed sharing.
+        // `results` may contain a `postID` key if the platform returns one.
+        print("Share complete:", results)
+    }
+
+    func sharer(_ sharer: Sharing, didFailWithError error: Error) {
+        // Something went wrong. Inspect `error` for details.
+        print("Share failed:", error.localizedDescription)
+    }
+
+    func sharerDidCancel(_ sharer: Sharing) {
+        // The user dismissed the dialog without sharing.
+        print("Share cancelled")
+    }
+}
+```
+
+<Note>
+When the user is not signed into your app, the SDK may not be able to distinguish between a completion and a cancellation. Your delegate should handle both gracefully.
+</Note>
+
+## Handling data errors
+
+By default, `shouldFailOnDataError` is `false`. This means the dialog still appears even when some parts of the content are invalid (for example, an invalid `placeID`). Set it to `true` if you want the share to fail fast instead:
+
+```swift
+dialog.shouldFailOnDataError = true
+```
+
+## Validating content without showing the dialog
+
+Call `validate()` to check the content is valid for the current mode before presenting the dialog. This method throws if something is wrong.
+
+```swift
+do {
+    try dialog.validate()
+    dialog.show()
+} catch {
+    print("Invalid share content:", error.localizedDescription)
+}
+```

@@ -1,0 +1,162 @@
+---
+title: "Permissions"
+description: "Request and inspect Facebook permissions to control which user data your iOS app can access."
+---
+
+A Facebook permission is a grant from the user that allows your app to read or write a specific category of their data. You declare the permissions you need in `LoginConfiguration`, and the user approves or declines them in the Facebook login dialog.
+
+## Read vs. publish permissions
+
+Facebook permissions fall into two broad categories:
+
+**Read permissions** let your app retrieve information about the user. Examples include `public_profile`, `email`, and `user_friends`. You can request read permissions any time during the login flow.
+
+**Publish permissions** let your app post content on the user's behalf. Examples include `publish_actions` and `pages_manage_posts`. Facebook requires you to go through App Review before your app can use publish permissions for users other than yourself.
+
+<Warning>
+Facebook does not allow mixing read and publish permissions in a single login request. Create separate `LoginConfiguration` instances for each category.
+</Warning>
+
+## The Permission type
+
+The SDK represents permissions with the `Permission` enum, which is `ExpressibleByStringLiteral`. You can use either the enum case or the raw string:
+
+```swift
+// Using enum cases
+let permissions: Set<Permission> = [.publicProfile, .email, .userFriends]
+
+// Using string literals (converted automatically)
+let permissions: Set<Permission> = ["public_profile", "email", "user_friends"]
+
+// Custom permission (not built-in)
+let custom: Permission = .custom("user_age_range")
+```
+
+Every `Permission` exposes a `.name` string that matches the raw Facebook permission name:
+
+```swift
+Permission.email.name       // "email"
+Permission.userFriends.name // "user_friends"
+```
+
+## Common permissions
+
+| Permission | Enum case | Description |
+|---|---|---|
+| `public_profile` | `.publicProfile` | Name, profile picture, and other public fields |
+| `email` | `.email` | Primary email address |
+| `user_friends` | `.userFriends` | Friends who also use your app |
+| `user_birthday` | `.userBirthday` | Date of birth |
+| `user_location` | `.userLocation` | Current city |
+| `user_photos` | `.userPhotos` | Photos uploaded or tagged |
+| `user_posts` | `.userPosts` | Posts on the user's timeline |
+| `user_gender` | `.userGender` | Gender |
+| `user_age_range` | `.userAgeRange` | Age range |
+| `user_link` | `.userLink` | Facebook profile URL |
+| `user_hometown` | `.userHometown` | Hometown location |
+| `user_events` | `.userEvents` | Events the user hosts or RSVPs to |
+| `user_videos` | `.userVideos` | Videos uploaded or tagged |
+| `user_likes` | `.userLikes` | Pages and objects the user has liked |
+| `pages_show_list` | `.pagesShowList` | Pages the user manages |
+| `ads_read` | `.adsRead` | Ads Insights API data |
+
+## Request permissions in LoginConfiguration
+
+Pass your permissions to `LoginConfiguration`. The SDK validates that permission strings contain no whitespace:
+
+```swift
+// Using the Swift convenience initializer with Permission values
+guard let config = LoginConfiguration(
+    permissions: [.publicProfile, .email],
+    tracking: .enabled
+) else {
+    // Initialization fails if any permission string is invalid
+    return
+}
+
+loginManager.logIn(viewController: self, configuration: config) { result in
+    // ...
+}
+```
+
+You can also pass raw strings, which is useful when working with permission names that are not built into the SDK:
+
+```swift
+guard let config = LoginConfiguration(
+    permissions: ["public_profile", "email"],
+    tracking: .enabled
+) else { return }
+```
+
+## Check granted and declined permissions in the result
+
+The `LoginResult.success` case carries the permissions granted and declined *in this specific request*:
+
+```swift
+loginManager.logIn(viewController: self, configuration: config) { result in
+    switch result {
+    case let .success(granted, declined, token):
+        if granted.contains(.email) {
+            // Email permission was granted in this request
+        }
+        if declined.contains(.email) {
+            // User explicitly declined email
+            // Explain why email improves their experience
+        }
+    case .cancelled:
+        break
+    case let .failed(error):
+        print(error)
+    }
+}
+```
+
+To check the *complete* set of permissions for the current session, read them from `AccessToken.current`:
+
+```swift
+if let token = AccessToken.current {
+    let allGranted = token.permissions          // Set<Permission>
+    let allDeclined = token.declinedPermissions  // Set<Permission>
+    let allExpired = token.expiredPermissions    // Set<Permission>
+
+    if token.hasGranted(.email) {
+        print("Email permission is active")
+    }
+}
+```
+
+## Check permissions before requesting them
+
+Avoid requesting a permission the user has already granted. Check `AccessToken.current` first to minimize unnecessary dialogs:
+
+```swift
+func ensureEmailPermission() {
+    if AccessToken.current?.hasGranted(.email) == true {
+        // Already granted — no need to ask again
+        return
+    }
+
+    guard let config = LoginConfiguration(
+        permissions: [.email],
+        tracking: .enabled
+    ) else { return }
+
+    loginManager.logIn(viewController: self, configuration: config) { result in
+        // handle
+    }
+}
+```
+
+## Best practices
+
+<Tip>
+**Request the minimum set.** Only request permissions when your app genuinely needs them for a specific feature. Requesting unnecessary permissions reduces conversion at the consent screen and may cause Facebook App Review to reject your app.
+</Tip>
+
+<Tip>
+**Explain before asking.** Show a short explanation of why you need the permission before triggering the login dialog. Users are more likely to grant permissions when they understand the value.
+</Tip>
+
+<Note>
+Some permissions require your app to go through Facebook's App Review process before they are available to users other than app admins and testers. Check the Facebook developer documentation for the review requirements of each permission.
+</Note>

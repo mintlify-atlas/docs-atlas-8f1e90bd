@@ -1,0 +1,205 @@
+---
+title: "Error handling"
+description: "Understand Facebook SDK error domains and codes, handle errors from LoginManager and GraphRequest, and implement user-facing error recovery."
+---
+
+The Facebook SDK reports errors using standard `NSError` objects with well-defined domains and codes. This guide covers the error types you will encounter and how to handle them correctly.
+
+## Error domains
+
+The SDK uses three primary error domains:
+
+| Domain | Constant | Description |
+|---|---|---|
+| `com.facebook.sdk.login` | `LoginErrorDomain` | Errors from the login flow |
+| `com.facebook.sdk.core` | `CoreErrorDomain` | Errors from core SDK operations and Graph API |
+| `com.facebook.sdk.share` | `ShareErrorDomain` | Errors from sharing dialogs |
+
+When you receive an `Error` in a completion handler, check its domain before inspecting the code:
+
+```swift
+import FBSDKCoreKit
+import FBSDKLoginKit
+
+func handleError(_ error: Error) {
+    let nsError = error as NSError
+    switch nsError.domain {
+    case LoginErrorDomain:
+        handleLoginError(nsError)
+    case CoreErrorDomain:
+        handleCoreError(nsError)
+    default:
+        print("Unhandled error domain: \(nsError.domain)")
+    }
+}
+```
+
+## Login error codes
+
+Login errors are represented by `LoginError` / `LoginErrorCode` in `FBSDKLoginKit`. The raw values start at 300.
+
+| Code | Raw value | Meaning |
+|---|---|---|
+| `.reserved` | 300 | Reserved; not used in production flows |
+| `.unknown` | 301 | An unknown error occurred during login |
+| `.passwordChanged` | 302 | The user changed their password and must log in again |
+| `.userCheckpointed` | 303 | The user must visit facebook.com to restore access |
+| `.userMismatch` | 304 | A permission re-request failed because the user identity changed |
+| `.unconfirmedUser` | 305 | The user must confirm their account before logging in |
+| `.systemAccountAppDisabled` | 306 | The app's access was disabled in iOS Settings |
+| `.systemAccountUnavailable` | 307 | The Facebook system account store was unavailable |
+| `.badChallengeString` | 308 | The login response was missing or had an invalid challenge string |
+| `.invalidIDToken` | 309 | The ID token returned in the login response was invalid |
+| `.missingAccessToken` | 310 | An access token was required but not available |
+
+## Handling errors from LoginManager
+
+The `LoginManager.logIn` completion handler receives a `LoginResult` enum. The `.failed` case carries the error:
+
+```swift
+import FBSDKLoginKit
+
+let loginManager = LoginManager()
+loginManager.logIn(permissions: ["email"], from: self) { result, error in
+    if let error = error {
+        handleLoginError(error)
+        return
+    }
+
+    guard let result = result, !result.isCancelled else {
+        // The user dismissed the login dialog.
+        return
+    }
+
+    // Login succeeded.
+    print("Logged in with token: \(AccessToken.current?.tokenString ?? "")")
+}
+
+func handleLoginError(_ error: Error) {
+    let nsError = error as NSError
+    guard nsError.domain == LoginErrorDomain else {
+        print("Unexpected error domain: \(nsError.domain)")
+        return
+    }
+
+    switch LoginErrorCode(rawValue: nsError.code) {
+    case .passwordChanged:
+        showAlert(message: "Your Facebook password has changed. Please log in again.")
+    case .userCheckpointed:
+        showAlert(message: "Your Facebook account needs attention. Visit facebook.com to continue.")
+    case .userMismatch:
+        showAlert(message: "This login is for a different Facebook account. Please try again.")
+    case .unconfirmedUser:
+        showAlert(message: "Please confirm your Facebook account before logging in.")
+    case .badChallengeString, .invalidIDToken:
+        // Security-related errors — do not expose internal details to the user.
+        showAlert(message: "Login failed due to a security error. Please try again.")
+    case .missingAccessToken:
+        showAlert(message: "Please log in to continue.")
+    default:
+        showAlert(message: "Login failed. Please try again.")
+    }
+}
+
+func showAlert(message: String) {
+    let alert = UIAlertController(title: "Login error", message: message, preferredStyle: .alert)
+    alert.addAction(UIAlertAction(title: "OK", style: .default))
+    present(alert, animated: true)
+}
+```
+
+## Handling errors from GraphRequest
+
+Graph API errors arrive through the `GraphRequestCompletion` closure. The `connection` parameter is the request connection, `result` is the raw response dictionary, and `error` is non-nil when the request failed:
+
+```swift
+import FBSDKCoreKit
+
+func fetchUserProfile() {
+    let request = GraphRequest(
+        graphPath: "me",
+        parameters: ["fields": "id,name,email"]
+    )
+
+    request.start { _, result, error in
+        if let error = error {
+            handleGraphError(error)
+            return
+        }
+
+        guard let result = result as? [String: Any] else { return }
+        let name = result["name"] as? String ?? "Unknown"
+        print("User name: \(name)")
+    }
+}
+
+func handleGraphError(_ error: Error) {
+    let nsError = error as NSError
+
+    // Graph API errors embed a nested error dictionary under NSUnderlyingErrorKey.
+    if let graphError = nsError.userInfo[GraphRequestErrorGraphErrorCodeKey] as? Int {
+        switch graphError {
+        case 102, 190:
+            // Invalid or expired token — prompt the user to log in again.
+            AccessToken.current = nil
+            showAlert(message: "Your session has expired. Please log in again.")
+        case 4, 17, 341:
+            // Rate limiting — back off and retry.
+            showAlert(message: "Too many requests. Please wait a moment and try again.")
+        default:
+            showAlert(message: "A Facebook error occurred (code \(graphError)). Please try again.")
+        }
+        return
+    }
+
+    // Network-level errors
+    if nsError.domain == NSURLErrorDomain {
+        showAlert(message: "Check your internet connection and try again.")
+        return
+    }
+
+    showAlert(message: "An unexpected error occurred. Please try again.")
+}
+```
+
+## Error recovery
+
+The SDK includes a built-in error recovery system for Graph API errors. When `Settings.shared.isGraphErrorRecoveryEnabled` is `true` (the default), the SDK attempts to automatically recover from certain errors — such as prompting the user to log in again when an access token expires.
+
+```swift
+import FBSDKCoreKit
+
+// Enable automatic Graph API error recovery (default is true).
+Settings.shared.isGraphErrorRecoveryEnabled = true
+
+// Disable it if you want to handle all recovery manually.
+Settings.shared.isGraphErrorRecoveryEnabled = false
+```
+
+When recovery is enabled and the SDK encounters a recoverable error, it presents a system alert to the user explaining the problem and offering a resolution. If recovery is disabled, you must handle these cases in your own completion handlers.
+
+<Note>
+Automatic error recovery requires a view controller context. If your Graph requests run in a background context without a view controller, disable automatic recovery and handle errors manually.
+</Note>
+
+## Best practices
+
+**Do not expose raw error codes to users.** Error codes are for your debugging. Show a human-readable message instead.
+
+**Always check for cancellation.** Users can cancel the login dialog; this is not an error and should be handled silently.
+
+**Log errors for debugging.** Use the SDK's logging behaviors to get detailed error information during development:
+
+```swift
+Settings.shared.enableLoggingBehavior(.networkRequests)
+Settings.shared.enableLoggingBehavior(.developerErrors)
+```
+
+**Distinguish user errors from system errors.** Errors like `.passwordChanged` require user action. Errors like network failures are transient and you can retry without user input.
+
+**Clear stale tokens on auth errors.** If you receive an auth-related Graph error (codes 102 or 190), clear the current access token and prompt re-authentication:
+
+```swift
+AccessToken.current = nil
+Profile.current = nil
+```

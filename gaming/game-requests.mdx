@@ -1,0 +1,145 @@
+---
+title: "Game requests"
+description: "Send in-game notifications and invitations to friends using GameRequestDialog on iOS."
+---
+
+Game requests let your app send notifications to a user's Facebook friends. You can use them to invite friends to play, ask for in-game items, signal that it's someone's turn, or send any custom message.
+
+## Build the content
+
+Describe the request using `GameRequestContent`.
+
+```swift
+import FacebookGamingServices
+
+let content = GameRequestContent()
+content.message = "Come join me in Puzzle Quest!"
+content.actionType = .invite
+```
+
+### Properties
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `message` | `String` | Yes | Plain-text message displayed in the request notification. |
+| `actionType` | `GameRequestActionType` | No | Describes the nature of the request. Defaults to `.none`. |
+| `objectID` | `String` | Conditional | Required when `actionType` is `.send` or `.askFor`. |
+| `recipients` | `[String]` | No | User IDs or invite tokens to send the request to directly. If set, the multi-friend selector is skipped. |
+| `recipientSuggestions` | `[String]` | No | User IDs to pre-populate as the first suggestions in the selector. Cannot be combined with `recipients` or `filters`. |
+| `filters` | `GameRequestFilter` | No | Controls which friends appear in the multi-friend selector. Defaults to `.none`. |
+| `data` | `String?` | No | Custom tracking payload attached to the request. Maximum 255 characters. |
+| `title` | `String` | No | Title displayed at the top of the dialog. |
+| `cta` | `String` | No | Call-to-action text for the dialog button. |
+
+### Action types
+
+| Value | Description |
+|---|---|
+| `.none` | No specific action context. |
+| `.send` | The user is sending an object to friends. Requires `objectID`. |
+| `.askFor` | The user is requesting an object from friends. Requires `objectID`. |
+| `.turn` | It is the friends' turn to play in a match. |
+| `.invite` | The user is inviting a friend to the game. |
+
+### Filter options
+
+| Value | Description |
+|---|---|
+| `.none` | All friends can be shown. |
+| `.appUsers` | Only friends who already use the app. |
+| `.appNonUsers` | Only friends who do not yet use the app. |
+| `.everybody` | All friends, when the Facebook app is installed. |
+
+<Warning>
+  You cannot combine `recipients`, `recipientSuggestions`, and `filters` in the same request. Setting more than one of these properties causes validation to fail when you call `show()`.
+</Warning>
+
+## Show the dialog
+
+You can show the dialog in one step using the static convenience method:
+
+```swift
+GameRequestDialog.show(content: content, delegate: self)
+```
+
+Or create a dialog instance for more control:
+
+```swift
+let dialog = GameRequestDialog(content: content, delegate: self)
+dialog.isFrictionlessRequestsEnabled = true
+dialog.show()
+```
+
+Set `isFrictionlessRequestsEnabled = true` to skip the dialog for recipients who have previously accepted frictionless requests from your app.
+
+## Handle the result
+
+Implement `GameRequestDialogDelegate` to receive outcomes.
+
+```swift
+extension GameViewController: GameRequestDialogDelegate {
+
+    func gameRequestDialog(
+        _ gameRequestDialog: GameRequestDialog,
+        didCompleteWithResults results: [String: Any]
+    ) {
+        let requestID = results["request_id"] as? String ?? ""
+        let recipients = results["recipients"] as? [String] ?? []
+        print("Request \(requestID) sent to: \(recipients)")
+    }
+
+    func gameRequestDialog(
+        _ gameRequestDialog: GameRequestDialog,
+        didFailWithError error: Error
+    ) {
+        print("Game request failed: \(error)")
+    }
+
+    func gameRequestDialogDidCancel(_ gameRequestDialog: GameRequestDialog) {
+        print("User cancelled the game request")
+    }
+}
+```
+
+| Method | When called |
+|---|---|
+| `gameRequestDialog(_:didCompleteWithResults:)` | The request was sent. The results dictionary contains `request_id` and `recipients`. |
+| `gameRequestDialog(_:didFailWithError:)` | An error occurred. |
+| `gameRequestDialogDidCancel(_:)` | The user dismissed the dialog without sending. |
+
+## Full example
+
+```swift
+import FacebookGamingServices
+
+class GameViewController: UIViewController {
+
+    func inviteFriendsToPlay() {
+        let content = GameRequestContent()
+        content.message = "It's your turn! Come play with me."
+        content.actionType = .turn
+
+        GameRequestDialog.show(content: content, delegate: self)
+    }
+}
+
+extension GameViewController: GameRequestDialogDelegate {
+
+    func gameRequestDialog(
+        _ gameRequestDialog: GameRequestDialog,
+        didCompleteWithResults results: [String: Any]
+    ) {
+        let requestID = results["request_id"] as? String ?? ""
+        print("Request sent, ID: \(requestID)")
+    }
+
+    func gameRequestDialog(
+        _ gameRequestDialog: GameRequestDialog,
+        didFailWithError error: Error
+    ) {
+        print("Error: \(error.localizedDescription)")
+    }
+
+    func gameRequestDialogDidCancel(_ gameRequestDialog: GameRequestDialog) {}
+}
+```

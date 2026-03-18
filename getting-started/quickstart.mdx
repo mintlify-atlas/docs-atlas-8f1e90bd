@@ -1,0 +1,140 @@
+---
+title: "Quickstart"
+description: "Get Facebook Login working in your iOS app in five steps."
+---
+
+This guide walks you through the minimum setup required to authenticate users with Facebook Login. By the end, your app will be able to present the Facebook Login flow and receive an access token.
+
+<Steps>
+  <Step title="Install the SDK">
+    Add the `FacebookCore` and `FacebookLogin` modules to your project. See [Installation](/getting-started/installation) for instructions using Swift Package Manager, CocoaPods, or Carthage.
+  </Step>
+
+  <Step title="Configure your Info.plist">
+    Open your app's `Info.plist` and add the following keys. Replace `YOUR_APP_ID`, `YOUR_CLIENT_TOKEN`, and `Your App Name` with the values from your [Meta App Dashboard](https://developers.facebook.com/apps).
+
+    ```xml
+    <key>FacebookAppID</key>
+    <string>YOUR_APP_ID</string>
+    <key>FacebookClientToken</key>
+    <string>YOUR_CLIENT_TOKEN</string>
+    <key>FacebookDisplayName</key>
+    <string>Your App Name</string>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+      <string>fbapi</string>
+      <string>fb-messenger-share-api</string>
+      <string>fbauth2</string>
+      <string>fbshareextension</string>
+    </array>
+    ```
+
+    <Note>
+      `FacebookClientToken` is required as of SDK v13.0. Find it in your app dashboard under **Settings → Advanced → Security → Client token**.
+    </Note>
+  </Step>
+
+  <Step title="Add a URL scheme">
+    The SDK uses a custom URL scheme to return users to your app after they authenticate with Facebook.
+
+    In Xcode, go to your target's **Info** tab, expand **URL Types**, and add a new entry:
+
+    - **Identifier**: `$(PRODUCT_BUNDLE_IDENTIFIER)`
+    - **URL Schemes**: `fbYOUR_APP_ID` (for example, `fb1234567890`)
+
+    In `Info.plist` this looks like:
+
+    ```xml
+    <key>CFBundleURLTypes</key>
+    <array>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>fbYOUR_APP_ID</string>
+        </array>
+      </dict>
+    </array>
+    ```
+
+    <Warning>
+      The URL scheme must be exactly `fb` followed by your numeric App ID with no spaces or other characters.
+    </Warning>
+  </Step>
+
+  <Step title="Initialize the SDK in your AppDelegate">
+    Call `ApplicationDelegate.shared.application(_:didFinishLaunchingWithOptions:)` from your app delegate so the SDK can initialize itself, restore cached tokens, and handle incoming URLs from the Facebook app.
+
+    ```swift
+    import UIKit
+    import FacebookCore
+
+    @main
+    class AppDelegate: UIResponder, UIApplicationDelegate {
+
+      func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+      ) -> Bool {
+        ApplicationDelegate.shared.application(
+          application,
+          didFinishLaunchingWithOptions: launchOptions
+        )
+        return true
+      }
+
+      func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+      ) -> Bool {
+        ApplicationDelegate.shared.application(
+          app,
+          open: url,
+          options: options
+        )
+      }
+    }
+    ```
+
+    <Tip>
+      If your app uses a `UIScene`-based lifecycle, call `ApplicationDelegate.shared.initializeSDK()` from `scene(_:willConnectTo:options:)` instead.
+    </Tip>
+  </Step>
+
+  <Step title="Implement Facebook Login">
+    Use `LoginManager` from `FacebookLogin` to start the login flow and handle the result.
+
+    ```swift
+    import FacebookCore
+    import FacebookLogin
+
+    class LoginViewController: UIViewController {
+
+      func loginWithFacebook() {
+        let loginManager = LoginManager()
+        loginManager.logIn(permissions: ["public_profile", "email"], from: self) { result, error in
+          if let error {
+            print("Login failed: \(error)")
+            return
+          }
+
+          guard let result, !result.isCancelled else {
+            print("Login cancelled")
+            return
+          }
+
+          // The user is now logged in.
+          // Access the token via AccessToken.current
+          print("Logged in. Token: \(AccessToken.current?.tokenString ?? "")")
+        }
+      }
+    }
+    ```
+
+    After a successful login, `AccessToken.current` holds the user's token and is automatically persisted across app launches.
+  </Step>
+</Steps>
+
+## Next steps
+
+Now that login is working, explore the full set of [configuration options](/getting-started/configuration) to tune SDK behavior for your app.

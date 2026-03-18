@@ -1,0 +1,62 @@
+---
+title: "App Events"
+description: "Track user actions and measure campaign performance with Facebook App Events."
+---
+
+App Events let you measure what users do inside your app and connect that data to your Facebook advertising campaigns. Events appear in Events Manager and Ads Manager where you can use them to build audiences, measure conversions, and optimise ad delivery.
+
+## Auto-logged events
+
+The SDK automatically logs several events without any code changes:
+
+| Event | When it fires |
+|---|---|
+| App install | First launch after install |
+| App launch / session | Each time the app becomes active |
+| In-app purchases | Detected via StoreKit (Original API and StoreKit 2) |
+
+Auto-logging is controlled by the `FacebookAutoLogAppEventsEnabled` key in your app's `Info.plist`.
+
+```xml
+<!-- Info.plist -->
+<key>FacebookAutoLogAppEventsEnabled</key>
+<false/>
+```
+
+Set the value to `false` to disable automatic event logging. When disabled, no events — including installs — are logged until you opt in explicitly.
+
+<Warning>
+Disabling auto-logging prevents install attribution from working. Only disable it if you have a specific privacy requirement and you plan to log installs manually.
+</Warning>
+
+## Custom events
+
+Beyond the standard set, you can log any event name that is meaningful to your app:
+
+```swift
+import FBSDKCoreKit
+
+AppEvents.shared.logEvent(.init("level_complete"), parameters: [
+    .init("level"): 5,
+    .init("score"): 12500
+])
+```
+
+## Viewing events
+
+Logged events appear in:
+
+- **Events Manager** — test and verify events in real time
+- **Ads Manager** — use events as conversion goals and optimisation signals
+- **Audiences** — build custom audiences from users who performed specific events
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Logging events" href="/app-events/logging-events">
+    Log standard and custom events with parameters.
+  </Card>
+  <Card title="In-App Purchase events" href="/app-events/iap-events">
+    Understand automatic StoreKit purchase tracking.
+  </Card>
+</CardGroup>

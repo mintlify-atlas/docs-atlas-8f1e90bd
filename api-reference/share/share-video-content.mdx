@@ -1,0 +1,171 @@
+---
+title: "ShareVideoContent"
+description: "A model for sharing a video from your app to Facebook."
+---
+
+## Overview
+
+`ShareVideoContent` holds a single `ShareVideo` to share as a Facebook video post. You can supply the video as raw `Data`, a `PHAsset`, or a file URL.
+
+**Module:** `FBSDKShareKit`  
+**Declared in:** `ShareVideoContent.swift`  
+**Objective-C name:** `FBSDKShareVideoContent`  
+**Conforms to:** `SharingContent`, `SharingValidatable`
+
+---
+
+## Initializer
+
+`ShareVideoContent` uses the default initializer. Create an instance and set the `video` property:
+
+```swift
+let content = ShareVideoContent()
+content.video = ShareVideo(videoURL: localFileURL)
+```
+
+---
+
+## Properties
+
+<ResponseField name="video" type="ShareVideo">
+  The video to share. This is required. Validation fails if no source is set on the `ShareVideo` object.
+</ResponseField>
+
+<ResponseField name="contentURL" type="URL?">
+  An optional URL associated with the content for App Links.
+</ResponseField>
+
+<ResponseField name="hashtag" type="Hashtag?">
+  An optional hashtag to include with the share.
+</ResponseField>
+
+<ResponseField name="peopleIDs" type="[String]">
+  User IDs to tag in the post. Defaults to an empty array.
+</ResponseField>
+
+<ResponseField name="placeID" type="String?">
+  The ID of a Facebook Place to tag with this content.
+</ResponseField>
+
+<ResponseField name="pageID" type="String?">
+  For Messenger shares, this page ID maps the app to a page and attaches attribution.
+</ResponseField>
+
+<ResponseField name="shareUUID" type="String?">
+  A unique identifier automatically generated for this share instance.
+</ResponseField>
+
+---
+
+## `ShareVideo`
+
+`ShareVideo` represents a single video. Only one source may be active at a time: `data`, `videoAsset`, or `videoURL`.
+
+**Objective-C name:** `FBSDKShareVideo`
+
+### Initializers
+
+#### `init(data:previewPhoto:)`
+
+```swift
+public convenience init(
+    data: Data,
+    previewPhoto: SharePhoto? = nil
+)
+```
+
+<ParamField path="data" type="Data">
+  Raw video data.
+</ParamField>
+
+<ParamField path="previewPhoto" type="SharePhoto?">
+  An optional thumbnail image to show before the video plays.
+</ParamField>
+
+#### `init(videoAsset:previewPhoto:)`
+
+```swift
+public convenience init(
+    videoAsset: PHAsset,
+    previewPhoto: SharePhoto? = nil
+)
+```
+
+<ParamField path="videoAsset" type="PHAsset">
+  A `PHAsset` from the Photos library. Must refer to a video.
+</ParamField>
+
+<ParamField path="previewPhoto" type="SharePhoto?">
+  An optional thumbnail image.
+</ParamField>
+
+#### `init(videoURL:previewPhoto:)`
+
+```swift
+public convenience init(
+    videoURL: URL,
+    previewPhoto: SharePhoto? = nil
+)
+```
+
+<ParamField path="videoURL" type="URL">
+  A local file URL or an `assets-library` URL pointing to the video on device.
+</ParamField>
+
+<ParamField path="previewPhoto" type="SharePhoto?">
+  An optional thumbnail image.
+</ParamField>
+
+### Properties
+
+<ResponseField name="data" type="Data?">
+  Raw video data. Setting this clears `videoAsset` and `videoURL`.
+</ResponseField>
+
+<ResponseField name="videoAsset" type="PHAsset?">
+  A `PHAsset` from the Photos library. Setting this clears `data` and `videoURL`.
+</ResponseField>
+
+<ResponseField name="videoURL" type="URL?">
+  A file URL to the video. Setting this clears `data` and `videoAsset`. Supports `file://` and `assets-library://` schemes.
+</ResponseField>
+
+<ResponseField name="previewPhoto" type="SharePhoto?">
+  An optional `SharePhoto` used as the video thumbnail. Setting the source (`data`, `videoAsset`, or `videoURL`) automatically clears this property.
+</ResponseField>
+
+---
+
+## Usage example
+
+```swift
+import FBSDKShareKit
+
+// Share a video from a local file
+let videoURL = Bundle.main.url(forResource: "promo", withExtension: "mp4")!
+let previewImage = SharePhoto(image: thumbnailImage, isUserGenerated: false)
+let video = ShareVideo(videoURL: videoURL, previewPhoto: previewImage)
+
+let content = ShareVideoContent()
+content.video = video
+
+ShareDialog.show(
+    viewController: self,
+    content: content,
+    delegate: self
+)
+
+// Share a video from the Photos library
+let asset: PHAsset = selectedVideoAsset
+let phVideo = ShareVideo(videoAsset: asset)
+let phContent = ShareVideoContent()
+phContent.video = phVideo
+```
+
+---
+
+## Related pages
+
+- [ShareDialog](/api-reference/share/share-dialog)
+- [ShareLinkContent](/api-reference/share/share-link-content)
+- [SharePhotoContent](/api-reference/share/share-photo-content)

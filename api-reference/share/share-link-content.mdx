@@ -1,0 +1,131 @@
+---
+title: "ShareLinkContent"
+description: "A model for sharing a URL link with an optional quote and hashtag."
+---
+
+## Overview
+
+`ShareLinkContent` holds the data for a standard Facebook link share. Set at minimum the `contentURL` property, then pass the object to a `ShareDialog`.
+
+**Module:** `FBSDKShareKit`  
+**Declared in:** `ShareLinkContent.swift`  
+**Objective-C name:** `FBSDKShareLinkContent`  
+**Conforms to:** `SharingContent`, `SharingValidatable`
+
+---
+
+## Initializer
+
+`ShareLinkContent` uses the default memberwise initializer. All properties have default values, so you can create an empty instance and set properties directly:
+
+```swift
+let content = ShareLinkContent()
+content.contentURL = URL(string: "https://example.com/article")
+content.quote = "An inspiring quote from the article."
+```
+
+---
+
+## Properties
+
+<ResponseField name="contentURL" type="URL?">
+  The URL to share. This is the primary required field for most share modes. The URL is checked for App Links meta tags to enable deep linking. Pass a valid `https` URL.
+</ResponseField>
+
+<ResponseField name="quote" type="String?">
+  Optional text to display alongside the link. When specified, the quote appears with custom styling on top of the link preview.
+</ResponseField>
+
+<ResponseField name="hashtag" type="Hashtag?">
+  An optional hashtag to include with the share. See [`Hashtag`](#hashtag) below.
+</ResponseField>
+
+<ResponseField name="pageID" type="String?">
+  For shares into Messenger, this page ID maps the app to a page and attaches attribution to the share.
+</ResponseField>
+
+<ResponseField name="peopleIDs" type="[String]">
+  An array of user IDs to tag in the post. Users must be taggable friends. Defaults to an empty array.
+</ResponseField>
+
+<ResponseField name="placeID" type="String?">
+  The ID of a Facebook Place to tag with this content.
+</ResponseField>
+
+<ResponseField name="ref" type="String?">
+  A value appended to the referrer URL when a person follows the shared link from their feed.
+</ResponseField>
+
+<ResponseField name="entityURI" type="String?">
+  A URI identifying the resource at `contentURL`, used for resource-level linking.
+</ResponseField>
+
+<ResponseField name="isMusicAttachmentAllowed" type="Bool">
+  When `true`, the SDK is allowed to attach background music to the share. Defaults to `false`.
+</ResponseField>
+
+<ResponseField name="shareUUID" type="String?">
+  A unique identifier automatically generated for this share instance. Useful for analytics and tracking.
+</ResponseField>
+
+---
+
+## `Hashtag`
+
+`Hashtag` represents a single hashtag to include with shared content.
+
+**Objective-C name:** `FBSDKHashtag`
+
+### Initializer
+
+```swift
+@objc(initWithString:)
+public init(_ string: String)
+```
+
+<ParamField path="string" type="String">
+  The hashtag string, including the leading `#`. Example: `"#SwiftDevelopment"`. Invalid hashtags (those not matching `#\w+`) are silently ignored when sharing.
+</ParamField>
+
+### Properties
+
+<ResponseField name="stringRepresentation" type="String">
+  The raw hashtag string as provided to the initializer.
+</ResponseField>
+
+<ResponseField name="isValid" type="Bool">
+  `true` if the hashtag matches the pattern `#\w+` (a `#` followed by one or more word characters).
+</ResponseField>
+
+---
+
+## Validation
+
+When you pass a `ShareLinkContent` to a `ShareDialog`, the SDK validates the content before presenting the dialog. The `contentURL`, if provided, must be a valid network URL. If `contentURL` is `nil`, validation passes and the dialog may still be shown in some modes.
+
+---
+
+## Usage example
+
+```swift
+import FBSDKShareKit
+
+let content = ShareLinkContent()
+content.contentURL = URL(string: "https://developers.facebook.com/")
+content.quote = "Build great things with Facebook."
+content.hashtag = Hashtag("#FacebookSDK")
+
+ShareDialog.show(
+    viewController: self,
+    content: content,
+    delegate: self
+)
+```
+
+---
+
+## Related pages
+
+- [ShareDialog](/api-reference/share/share-dialog)
+- [SharePhotoContent](/api-reference/share/share-photo-content)
+- [ShareVideoContent](/api-reference/share/share-video-content)

@@ -1,0 +1,147 @@
+---
+title: "LoginResult"
+description: "Describes the outcome of a login attempt as a Swift enum, plus the Objective-C compatible LoginManagerLoginResult class."
+---
+
+## Overview
+
+The Facebook Login SDK exposes two representations of a login outcome:
+
+- **`LoginResult`** — a `@frozen` Swift enum used by the `LoginResultBlock` closure. This is the type you receive in the Swift `logIn(viewController:configuration:completion:)` callback.
+- **`LoginManagerLoginResult`** — an `NSObject` subclass used for Objective-C compatibility and for the `LoginManagerLoginResultBlock` callback.
+
+**Module:** `FBSDKLoginKit`  
+**Declared in:** `LoginResult.swift`, `LoginManagerLoginResult.swift`
+
+---
+
+## `LoginResult` enum
+
+```swift
+@frozen
+public enum LoginResult {
+    case success(granted: Set<Permission>, declined: Set<Permission>, token: AccessToken?)
+    case cancelled
+    case failed(Error)
+}
+```
+
+### Cases
+
+<ResponseField name=".success(granted:declined:token:)" type="case">
+  The login completed successfully. Contains the set of granted permissions, the set of declined permissions, and an optional `AccessToken`. The token is `nil` when using `.limited` tracking.
+</ResponseField>
+
+<ResponseField name=".cancelled" type="case">
+  The user dismissed the login dialog without completing the flow.
+</ResponseField>
+
+<ResponseField name=".failed(Error)" type="case">
+  The login attempt encountered an error. The associated value is the underlying `Error`.
+</ResponseField>
+
+### Pattern matching
+
+```swift
+loginManager.logIn(viewController: self, configuration: config) { result in
+    switch result {
+    case let .success(granted, declined, token):
+        if granted.contains(.email) {
+            print("Email permission granted")
+        }
+        if let token = token {
+            print("Access token:", token.tokenString)
+        }
+    case .cancelled:
+        print("User cancelled login")
+    case let .failed(error):
+        print("Login error:", error.localizedDescription)
+    }
+}
+```
+
+### `LoginResultBlock` type alias
+
+```swift
+public typealias LoginResultBlock = (LoginResult) -> Void
+```
+
+---
+
+## `LoginManagerLoginResult` class
+
+`LoginManagerLoginResult` is the Objective-C–compatible result type. You receive it in the `LoginManagerLoginResultBlock` callback used by `logIn(permissions:from:handler:)` and `reauthorizeDataAccess(from:handler:)`.
+
+**Objective-C name:** `FBSDKLoginManagerLoginResult`
+
+### Initializer
+
+```swift
+public init(
+    token: AccessToken?,
+    authenticationToken: AuthenticationToken?,
+    isCancelled: Bool,
+    grantedPermissions: Set<String>,
+    declinedPermissions: Set<String>
+)
+```
+
+### Properties
+
+<ResponseField name="token" type="AccessToken?">
+  The `AccessToken` granted by the login attempt. This is `nil` if the login was cancelled, failed, or used `.limited` tracking.
+</ResponseField>
+
+<ResponseField name="authenticationToken" type="AuthenticationToken?">
+  The `AuthenticationToken` provided when using `.limited` tracking (OpenID Connect).
+</ResponseField>
+
+<ResponseField name="isCancelled" type="Bool">
+  `true` if the user dismissed the login dialog without completing the flow.
+</ResponseField>
+
+<ResponseField name="grantedPermissions" type="Set&lt;String&gt;">
+  The permissions that were granted during this specific login request. Check `AccessToken.current?.permissions` for the full set of currently-granted permissions.
+</ResponseField>
+
+<ResponseField name="declinedPermissions" type="Set&lt;String&gt;">
+  The permissions that were explicitly declined during this login request.
+</ResponseField>
+
+### Objective-C usage example
+
+```swift
+// Swift equivalent of the ObjC LoginManagerLoginResultBlock pattern
+loginManager.logIn(
+    permissions: ["public_profile"],
+    from: self
+) { result, error in
+    if let error = error {
+        print("Error:", error)
+        return
+    }
+    guard let result = result, !result.isCancelled else {
+        print("Cancelled")
+        return
+    }
+    print("Granted:", result.grantedPermissions)
+    print("Declined:", result.declinedPermissions)
+}
+```
+
+---
+
+## Choosing between the two types
+
+| Scenario | Recommended type |
+|----------|------------------|
+| Swift code using `logIn(viewController:configuration:completion:)` | `LoginResult` |
+| Objective-C code or legacy Swift using `logIn(permissions:from:handler:)` | `LoginManagerLoginResult` |
+| Reauthorizing data access | `LoginManagerLoginResult` via `LoginManagerLoginResultBlock` |
+
+---
+
+## Related pages
+
+- [LoginManager](/api-reference/login/login-manager)
+- [LoginConfiguration](/api-reference/login/login-configuration)

@@ -1,0 +1,225 @@
+---
+title: "ShareDialog"
+description: "Presents the Facebook share dialog, letting users share links, photos, and videos from your app."
+---
+
+## Overview
+
+`ShareDialog` is the main entry point for sharing content on Facebook. It supports multiple presentation modes—native app, iOS share sheet, browser, and web—and chooses the best available mode automatically when you use `.automatic`.
+
+**Module:** `FBSDKShareKit`  
+**Declared in:** `ShareDialog.swift`  
+**Objective-C name:** `FBSDKShareDialog`
+
+### Supported content types
+
+| Content type | Class |
+|---|---|
+| Links | `ShareLinkContent` |
+| Photos | `SharePhotoContent` |
+| Videos | `ShareVideoContent` |
+| Camera effects | `ShareCameraEffectContent` |
+| Mixed media | `ShareMediaContent` |
+
+---
+
+## Initializer
+
+### `init(viewController:content:delegate:)`
+
+```swift
+@objc(initWithViewController:content:delegate:)
+public init(
+    viewController: UIViewController?,
+    content: SharingContent?,
+    delegate: SharingDelegate?
+)
+```
+
+<ParamField path="viewController" type="UIViewController?">
+  The view controller from which to present the dialog. Pass `nil` to use the topmost view controller.
+</ParamField>
+
+<ParamField path="content" type="SharingContent?">
+  The content to share. Must be one of the supported content types listed above.
+</ParamField>
+
+<ParamField path="delegate" type="SharingDelegate?">
+  A weak delegate that receives share completion, cancellation, and failure callbacks.
+</ParamField>
+
+---
+
+## Static factory methods
+
+### `ShareDialog.dialog(viewController:content:delegate:)`
+
+Creates but does not show a `ShareDialog`.
+
+```swift
+@objc(dialogWithViewController:withContent:delegate:)
+public class func dialog(
+    viewController: UIViewController?,
+    content: SharingContent?,
+    delegate: SharingDelegate?
+) -> ShareDialog
+```
+
+### `ShareDialog.show(viewController:content:delegate:)`
+
+Creates and immediately shows a `ShareDialog`.
+
+```swift
+@discardableResult
+@objc(showFromViewController:withContent:delegate:)
+public class func show(
+    viewController: UIViewController?,
+    content: SharingContent?,
+    delegate: SharingDelegate?
+) -> ShareDialog
+```
+
+---
+
+## Properties
+
+<ResponseField name="fromViewController" type="UIViewController?">
+  The view controller from which the dialog is presented. Weak reference.
+</ResponseField>
+
+<ResponseField name="mode" type="ShareDialog.Mode">
+  Controls how the dialog is presented. Defaults to `.automatic`. See [`ShareDialog.Mode`](#sharedialogmode-enum).
+</ResponseField>
+
+<ResponseField name="shareContent" type="SharingContent?">
+  The content to be shared. You can update this before calling `show()`.
+</ResponseField>
+
+<ResponseField name="delegate" type="SharingDelegate?">
+  The object receiving share lifecycle events. Weak reference.
+</ResponseField>
+
+<ResponseField name="shouldFailOnDataError" type="Bool">
+  When `true`, the dialog fails if it detects invalid data in the share content. When `false`, the dialog is still shown but the misconfigured data is omitted. Defaults to `false`.
+</ResponseField>
+
+<ResponseField name="canShow" type="Bool">
+  `true` if the dialog can be shown given the current mode, content, and device capabilities. Check this before calling `show()` if you want to avoid a failed attempt.
+</ResponseField>
+
+---
+
+## Methods
+
+### `show()`
+
+Presents the share dialog.
+
+```swift
+@discardableResult
+public func show() -> Bool
+```
+
+<ResponseField name="return value" type="Bool">
+  `true` if the dialog was displayed successfully, `false` if validation failed.
+</ResponseField>
+
+---
+
+## `ShareDialog.Mode` enum
+
+| Case | Description |
+|------|-------------|
+| `.automatic` | Selects the best available mode automatically (default). |
+| `.native` | Presents the dialog inside the main Facebook app. Requires the Facebook app to be installed. |
+| `.shareSheet` | Uses the iOS integrated share sheet (`SLComposeViewController`). Requires the Facebook app to be installed. |
+| `.browser` | Opens the share dialog in Safari. |
+| `.web` | *(Deprecated)* Opens in a `WKWebView` inside your app. |
+| `.feedBrowser` | *(Deprecated)* Opens the feed dialog in Safari. |
+| `.feedWeb` | *(Deprecated)* Opens the feed dialog in a `WKWebView`. |
+
+---
+
+## `SharingDelegate` protocol
+
+Implement this protocol to receive the result of a share attempt.
+
+**Objective-C name:** `FBSDKSharingDelegate`
+
+### `sharer(_:didCompleteWithResults:)`
+
+Called when sharing completes without error or cancellation.
+
+```swift
+func sharer(_ sharer: Sharing, didCompleteWithResults results: [String: Any])
+```
+
+<ParamField path="sharer" type="Sharing">
+  The sharer that completed.
+</ParamField>
+
+<ParamField path="results" type="[String: Any]">
+  A dictionary of results from the share dialog. May be empty.
+</ParamField>
+
+### `sharer(_:didFailWithError:)`
+
+Called when the sharer encounters an error.
+
+```swift
+func sharer(_ sharer: Sharing, didFailWithError error: Error)
+```
+
+### `sharerDidCancel(_:)`
+
+Called when the user dismisses the share dialog without sharing.
+
+```swift
+func sharerDidCancel(_ sharer: Sharing)
+```
+
+---
+
+## Usage example
+
+```swift
+import FBSDKShareKit
+
+class ShareViewController: UIViewController, SharingDelegate {
+
+    func shareLink() {
+        let content = ShareLinkContent()
+        content.contentURL = URL(string: "https://developers.facebook.com/")
+
+        let dialog = ShareDialog(
+            viewController: self,
+            content: content,
+            delegate: self
+        )
+        dialog.mode = .automatic
+        dialog.show()
+    }
+
+    // MARK: - SharingDelegate
+
+    func sharer(_ sharer: Sharing, didCompleteWithResults results: [String: Any]) {
+        print("Share completed:", results)
+    }
+
+    func sharer(_ sharer: Sharing, didFailWithError error: Error) {
+        print("Share failed:", error)
+    }
+
+    func sharerDidCancel(_ sharer: Sharing) {
+        print("Share cancelled")
+    }
+}
+```
+
+---
+
+## Related pages
+
+- [ShareLinkContent](/api-reference/share/share-link-content)
+- [SharePhotoContent](/api-reference/share/share-photo-content)
+- [ShareVideoContent](/api-reference/share/share-video-content)

@@ -1,0 +1,90 @@
+---
+title: "Gaming Services overview"
+description: "An overview of the Facebook Gaming Services SDK for iOS, including contexts, game requests, tournaments, and media upload."
+---
+
+The `FacebookGamingServices` module extends the Facebook SDK for iOS with features designed for Instant Games and Facebook Gaming integrations. It gives your game the ability to manage gaming contexts, send requests to friends, participate in tournaments, and upload media to a user's Gaming Media Library.
+
+## Prerequisites
+
+All APIs in this section require the `FacebookGamingServices` module. Add it to your target in addition to `FacebookCore`:
+
+```swift
+import FacebookGamingServices
+```
+
+Most features also require a valid `AccessToken.current`. Make sure the user is authenticated before calling any Gaming Services APIs.
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Context dialogs" href="/gaming/context-dialogs">
+    Create, switch, and choose Instant Games contexts to play with friends.
+  </Card>
+  <Card title="Game requests" href="/gaming/game-requests">
+    Send in-game notifications and invitations to friends.
+  </Card>
+  <Card title="Tournaments" href="/gaming/tournaments">
+    Fetch, update, share, and join tournaments.
+  </Card>
+  <Card title="Media upload" href="/gaming/media-upload">
+    Upload images and videos to a user's Gaming Media Library.
+  </Card>
+</CardGroup>
+
+## Current gaming context
+
+`GamingContext.current` is a shared object that reflects the user's active game instance. It is set automatically when a context dialog completes or when the app is launched via a gaming deep link.
+
+```swift
+if let context = GamingContext.current {
+    print("Context ID: \(context.identifier)")
+    print("Players in session: \(context.size)")
+}
+```
+
+| Property | Type | Description |
+|---|---|---|
+| `identifier` | `String` | Unique ID for the current game instance. |
+| `size` | `Int` | Number of players in the current game instance. |
+
+## Gaming payload and deep link handling
+
+When a user opens your app from a Facebook gaming deep link (for example, via a game request or tournament invite), the URL may carry a payload. `GamingPayloadObserver` listens for these URLs and forwards them to your delegate.
+
+```swift
+class AppDelegate: UIResponder, UIApplicationDelegate, GamingPayloadDelegate {
+
+    var payloadObserver: GamingPayloadObserver?
+
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+        payloadObserver = GamingPayloadObserver(delegate: self)
+        return true
+    }
+
+    // Called when the app is opened from a game request link
+    func parsedGameRequestURLContaining(_ payload: GamingPayload, gameRequestID: String) {
+        print("Game request ID: \(gameRequestID)")
+        print("Payload: \(payload.payload)")
+    }
+
+    // Called when the app is opened from a context link; GamingContext.current is updated automatically
+    func parsedGamingContextURLContaining(_ payload: GamingPayload) {
+        print("Context: \(GamingContext.current?.identifier ?? "none")")
+    }
+
+    // Called when the app is opened from a tournament link
+    func parsedTournamentURLContaining(_ payload: GamingPayload, tournamentID: String) {
+        print("Tournament ID: \(tournamentID)")
+    }
+}
+```
+
+`GamingPayload` exposes the raw `payload` string carried in the deep link URL. The observer routes each URL type to the appropriate optional delegate method:
+
+- `parsedGameRequestURLContaining(_:gameRequestID:)` — a game request deep link
+- `parsedGamingContextURLContaining(_:)` — a gaming context deep link (also updates `GamingContext.current`)
+- `parsedTournamentURLContaining(_:tournamentID:)` — a tournament deep link

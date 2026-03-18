@@ -1,0 +1,180 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Facebook SDK for iOS",
+  "projectDescription": "An open-source iOS SDK that enables apps to integrate Facebook Login, sharing, Graph API access, app events analytics, gaming services, and App Links.",
+  "theme": "linden",
+  "primaryColor": "#047af3",
+  "lightColor": "#040404",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "getting-started/installation",
+              "getting-started/quickstart",
+              "getting-started/configuration"
+            ]
+          },
+          {
+            "group": "Facebook Login",
+            "pages": [
+              "login/overview",
+              "login/login-manager",
+              "login/login-button",
+              "login/permissions",
+              "login/access-tokens",
+              "login/limited-login"
+            ]
+          },
+          {
+            "group": "Sharing",
+            "pages": [
+              "sharing/overview",
+              "sharing/share-dialog",
+              "sharing/share-content",
+              "sharing/share-photos-videos"
+            ]
+          },
+          {
+            "group": "Graph API",
+            "pages": [
+              "graph-api/overview",
+              "graph-api/making-requests",
+              "graph-api/batch-requests"
+            ]
+          },
+          {
+            "group": "App Events",
+            "pages": [
+              "app-events/overview",
+              "app-events/logging-events",
+              "app-events/iap-events"
+            ]
+          },
+          {
+            "group": "Gaming Services",
+            "pages": [
+              "gaming/overview",
+              "gaming/context-dialogs",
+              "gaming/game-requests",
+              "gaming/tournaments",
+              "gaming/media-upload"
+            ]
+          },
+          {
+            "group": "App Links",
+            "pages": [
+              "app-links/overview",
+              "app-links/handling-deeplinks"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/privacy-ios14",
+              "guides/error-handling",
+              "guides/migration"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core",
+            "pages": [
+              "api-reference/core/application-delegate",
+              "api-reference/core/access-token",
+              "api-reference/core/settings",
+              "api-reference/core/profile",
+              "api-reference/core/graph-request"
+            ]
+          },
+          {
+            "group": "Login",
+            "pages": [
+              "api-reference/login/login-manager",
+              "api-reference/login/login-configuration",
+              "api-reference/login/login-result",
+              "api-reference/login/device-login-manager"
+            ]
+          },
+          {
+            "group": "Share",
+            "pages": [
+              "api-reference/share/share-dialog",
+              "api-reference/share/share-link-content",
+              "api-reference/share/share-photo-content",
+              "api-reference/share/share-video-content"
+            ]
+          },
+          {
+            "group": "Gaming",
+            "pages": [
+              "api-reference/gaming/gaming-context",
+              "api-reference/gaming/game-request-dialog",
+              "api-reference/gaming/tournament-fetcher"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Changelog",
+        "groups": [
+          {
+            "group": "Releases",
+            "pages": [
+              "changelog"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Facebook Login with OAuth 2.0 and OpenID Connect support",
+    "Limited Login mode for iOS 14+ privacy compliance",
+    "Content sharing via dialogs (links, photos, videos, camera effects)",
+    "Graph API client for making authenticated requests to Facebook's API",
+    "App Events analytics for tracking user actions and conversions",
+    "Gaming Services: context dialogs, game requests, tournaments, media upload",
+    "App Links support for deep linking and deferred deep linking",
+    "Swift Package Manager, CocoaPods, and Carthage support",
+    "In-App Purchase event tracking with StoreKit and StoreKit 2 APIs",
+    "AEM (Aggregated Event Measurement) for privacy-preserving ad attribution"
+  ],
+  "publicApiSurface": [
+    "ApplicationDelegate.shared",
+    "ApplicationDelegate.application(_:didFinishLaunchingWithOptions:)",
+    "LoginManager.logIn(viewController:configuration:completion:)",
+    "LoginManager.logOut()",
+    "LoginManager.reauthorizeDataAccess(from:handler:)",
+    "LoginConfiguration(permissions:tracking:)",
+    "AccessToken.current",
+    "AuthenticationToken.current",
+    "Profile.current",
+    "GraphRequest(graphPath:parameters:)",
+    "GraphRequestConnection.start()",
+    "AppEvents.logEvent(_:)",
+    "AppEvents.logPurchase(_:currency:)",
+    "ShareDialog.show()",
+    "ShareLinkContent",
+    "SharePhotoContent",
+    "ShareVideoContent",
+    "FBLoginButton",
+    "DeviceLoginManager",
+    "GamingContext",
+    "GameRequestDialog",
+    "TournamentFetcher",
+    "GamingImageUploader",
+    "GamingVideoUploader",
+    "AEMReporter.enable()",
+    "Settings.shared.appID"
+  ]
+}
